@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 
-from pgvector.sqlalchemy import Vector
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -19,7 +18,8 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(50))
     full_name: Mapped[str] = mapped_column(String(255))
-    face_embedding: Mapped[list[float] | None] = mapped_column(Vector(128), nullable=True)
+    # Use JSONB instead of Vector for compatibility
+    face_embedding: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     exams: Mapped[list["Exam"]] = relationship("Exam", back_populates="professor")
     sessions: Mapped[list["Session"]] = relationship("Session", back_populates="student")
@@ -110,6 +110,9 @@ class Response(Base):
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     graded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    time_spent_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     session: Mapped[Session] = relationship("Session", back_populates="responses")
     question: Mapped[Question] = relationship("Question", back_populates="responses")

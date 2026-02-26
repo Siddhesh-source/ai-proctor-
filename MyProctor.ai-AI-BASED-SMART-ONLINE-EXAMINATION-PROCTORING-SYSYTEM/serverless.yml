@@ -1,4 +1,4 @@
-service: morpheus-backend
+service: quatarly-backend
 
 provider:
   name: aws

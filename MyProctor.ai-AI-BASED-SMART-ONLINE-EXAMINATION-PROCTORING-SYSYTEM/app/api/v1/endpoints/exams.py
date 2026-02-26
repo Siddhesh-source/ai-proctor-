@@ -226,14 +226,36 @@ async def submit_answer(
         )
     )
     response = response_result.scalar_one_or_none()
+    
+    current_time = datetime.utcnow()
+    
     if response:
+        # Update existing response
+        if response.submitted_at:
+            time_diff = int((current_time - response.submitted_at).total_seconds())
+            response.time_spent_seconds = (response.time_spent_seconds or 0) + time_diff
         response.answer = payload.answer
+        response.submitted_at = current_time
     else:
+        # Create new response
+        # Find the last submitted response for this session to calculate start_time
+        last_resp_query = await db.execute(
+            select(Response)
+            .where(Response.session_id == session_uuid)
+            .order_by(Response.submitted_at.desc())
+            .limit(1)
+        )
+        last_resp = last_resp_query.scalar_one_or_none()
+        start_time = last_resp.submitted_at if last_resp and last_resp.submitted_at else session.started_at
+        
         db.add(
             Response(
                 session_id=session_uuid,
                 question_id=question_uuid,
                 answer=payload.answer,
+                started_at=start_time,
+                submitted_at=current_time,
+                time_spent_seconds=int((current_time - start_time).total_seconds())
             )
         )
     await db.commit()

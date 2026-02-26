@@ -75,10 +75,13 @@ async def face_verify(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if user.face_embedding is None:
-        user.face_embedding = payload.face_embedding
+        # Store as dict with 'embedding' key for JSONB compatibility
+        user.face_embedding = {"embedding": payload.face_embedding}
         await db.commit()
         return {"registered": True}
-    similarity = _cosine_similarity(user.face_embedding, payload.face_embedding)
+    # Extract embedding from JSONB
+    stored_embedding = user.face_embedding.get("embedding", []) if isinstance(user.face_embedding, dict) else user.face_embedding
+    similarity = _cosine_similarity(stored_embedding, payload.face_embedding)
     if similarity > 0.85:
         return {"verified": True}
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Face mismatch")
