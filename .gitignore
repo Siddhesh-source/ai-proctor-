@@ -16,8 +16,7 @@ chroma_db/
 ~/.morpheus/
 
 # ML models
-*.pt
-*.onnx
+yolov*.pt*
 
 # Pytest
 .pytest_cache/
