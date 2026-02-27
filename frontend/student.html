@@ -57,14 +57,276 @@
 
       .page {
         padding: 28px 24px 64px;
+        min-height: 100vh;
       }
 
       .container {
         width: 100%;
         max-width: var(--container);
         margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .hero-head {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding-top: 6px;
+        position: relative;
+      }
+
+      .header-right {
+        position: absolute;
+        top: 0;
+        right: -100px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .profile-trigger-wrap {
+        position: relative;
+      }
+
+      .org-tab {
+        width: calc(100% + 100px);
+        margin-left: -50px;
+        border-radius: 0;
+        padding: 6px 0;
+        background: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .org-brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: -50px;
+      }
+
+      .org-brand img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+
+      .org-title {
+        font-size: 16px;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        font-weight: 700;
+      }
+
+      .org-subtitle {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .org-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-right: 60px;
+      }
+
+      .org-status,
+      .org-chip {
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+      }
+
+      .org-status {
+        background: rgba(0, 214, 255, 0.14);
+        color: #00d8ff;
+      }
+
+      .org-chip {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .org-info {
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 6px;
+      }
+
+      .org-info-row {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        align-items: center;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+      }
+
+      .org-info-name {
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .org-info-status {
+        color: #00d896;
+      }
+
+      .org-info-detail {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .profile-trigger {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        padding: 2px;
+        background: linear-gradient(160deg, rgba(0, 200, 150, 0.7), rgba(0, 150, 200, 0.9));
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color 220ms var(--ease), transform 220ms var(--ease);
+      }
+
+      .avatar {
+        position: relative;
+        display: inline-flex;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.08);
+        align-items: center;
+        justify-content: center;
+      }
+
+      .avatar-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: relative;
+        z-index: 1;
+      }
+
+      .avatar-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .profile-trigger:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+      }
+
+      .separator {
+        height: 1px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .profile-popup {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        width: 240px;
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 18px 44px rgba(15, 15, 15, 0.25);
+        color: #1a1a1a;
+        padding: 16px;
         display: grid;
-        gap: 20px;
+        gap: 12px;
+        opacity: 0;
+        transform: translateY(-6px);
+        pointer-events: none;
+        transition: opacity 220ms var(--ease), transform 220ms var(--ease);
+        z-index: 30;
+      }
+
+      .profile-popup.is-open {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+
+      .profile-popup-header {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 48px 1fr;
+        align-items: center;
+      }
+
+      .profile-popup-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .profile-popup-name {
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.04em;
+      }
+
+      .profile-popup-email {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.54);
+      }
+
+      .profile-options {
+        display: grid;
+        gap: 6px;
+      }
+
+      .profile-option {
+        border: 0;
+        background: transparent;
+        padding: 10px 12px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        text-align: left;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        color: #111;
+        transition: background 200ms ease;
+      }
+
+      .profile-option:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
+
+      .profile-option-icon {
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
       }
 
       .header {
@@ -240,15 +502,80 @@
   <body>
     <div class="page">
       <div class="container">
-        <header class="header">
-          <div>
-            <div class="title">Dashboard</div>
-            <div class="subtitle">
-              Track exams, monitor upcoming windows, and review past performance from a single view.
+        <header class="hero-head" id="home">
+          <div class="org-tab">
+            <div class="org-brand">
+              <img src="vit.png" alt="Org logo" />
+              <div>
+                <div class="org-title">Vishwakarma Institute of Technology</div>
+                <div class="org-subtitle">Pune</div>
+              </div>
+            </div>
+            <div class="org-actions">
+              <span class="org-status">Verified</span>
+              <span class="org-chip">STUDENT</span>
             </div>
           </div>
-          <div>
-            <a class="button" href="login.html">Logout</a>
+          <div class="separator" role="separator" aria-orientation="horizontal"></div>
+          <div class="org-info">
+            <div class="org-info-row">
+              <span class="org-info-name">Himanshu Deshmukh</span>
+              <span class="org-info-status">Active</span>
+              <span class="org-info-detail">Registration No: 12414955</span>
+              <span class="org-info-detail">BTech - Computer Science and Engineering (AI &amp; ML)</span>
+            </div>
+          </div>
+          <div class="header">
+            <div>
+              <div class="title">Dashboard</div>
+              <div class="subtitle">
+                Track exams, monitor upcoming windows, and review past performance from a single view.
+              </div>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="profile-trigger-wrap">
+              <button
+                class="profile-trigger"
+                type="button"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="profile-popup"
+              >
+                <span class="avatar">
+                  <img class="avatar-image" src="https://i.pravatar.cc/150?img=12" alt="Student profile" />
+                  <span class="avatar-fallback">HD</span>
+                </span>
+              </button>
+              <div class="profile-popup" id="profile-popup" role="menu" aria-hidden="true">
+                <div class="profile-popup-header">
+                  <div class="profile-popup-avatar">
+                    <span class="avatar">
+                      <img class="avatar-image" src="https://i.pravatar.cc/150?img=12" alt="Student avatar" />
+                      <span class="avatar-fallback">HD</span>
+                    </span>
+                  </div>
+                  <div>
+                    <div class="profile-popup-name">Himanshu Deshmukh</div>
+                    <div class="profile-popup-email">himanshu.deshmukh24@vit.edu</div>
+                  </div>
+                </div>
+                <div class="profile-options">
+                  <button class="profile-option" type="button" data-action="profile">
+                    <span class="profile-option-icon">👤</span> User Profile
+                  </button>
+                  <button class="profile-option" type="button" data-action="password">
+                    <span class="profile-option-icon">🔒</span> Change Password
+                  </button>
+                  <button class="profile-option" type="button" data-action="id">
+                    <span class="profile-option-icon">💳</span> Virtual ID Card
+                  </button>
+                  <button class="profile-option" type="button" data-action="logout">
+                    <span class="profile-option-icon">⏻</span> Log Out
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -324,23 +651,30 @@
         if (!window.Morpheus.requireAuth("student")) return;
 
         const activeBody = document.getElementById("active-exams-body");
-        const nameTarget = document.querySelector(".title");
-        const logoutButton = document.querySelector('a.button[href="login.html"]');
+        const profileName = document.querySelector(".profile-popup-name");
+        const profileEmail = document.querySelector(".profile-popup-email");
+        const orgName = document.querySelector(".org-info-name");
+        const logoutOption = document.querySelector('[data-action="logout"]');
 
-        const setName = async () => {
-          const user = window.Morpheus.getUser();
-          if (user?.full_name) {
-            nameTarget.textContent = user.full_name;
-            return;
-          }
-          try {
-            const me = await window.Morpheus.getMe();
-            if (me?.full_name) {
-              nameTarget.textContent = me.full_name;
-              window.Morpheus.setUser({ id: me.id, role: me.role, full_name: me.full_name });
+        const setProfile = async () => {
+          let user = window.Morpheus.getUser();
+          if (!user) {
+            try {
+              user = await window.Morpheus.getMe();
+            } catch {
+              user = null;
             }
-          } catch {
-            // keep existing title if name lookup fails
+          }
+          if (user?.full_name) {
+            if (orgName) {
+              orgName.textContent = user.full_name;
+            }
+            if (profileName) {
+              profileName.textContent = user.full_name;
+            }
+          }
+          if (user?.email && profileEmail) {
+            profileEmail.textContent = user.email;
           }
         };
 
@@ -401,15 +735,66 @@
           }
         };
 
-        if (logoutButton) {
-          logoutButton.addEventListener("click", (event) => {
+        const logout = (event) => {
+          if (event) {
             event.preventDefault();
-            window.Morpheus.clearToken();
-            window.location.href = "login.html";
+          }
+          window.Morpheus.clearToken();
+          window.location.href = "login.html";
+        };
+
+        if (logoutOption) {
+          logoutOption.addEventListener("click", logout);
+        }
+
+        const escKey = (e) => e.key === "Escape" || e.key === "Esc";
+        const profileTrigger = document.querySelector(".profile-trigger");
+        const profilePopup = document.getElementById("profile-popup");
+
+        const closePopup = () => {
+          if (!profilePopup || !profileTrigger) return;
+          profilePopup.classList.remove("is-open");
+          profilePopup.setAttribute("aria-hidden", "true");
+          profileTrigger.setAttribute("aria-expanded", "false");
+        };
+
+        const openPopup = () => {
+          if (!profilePopup || !profileTrigger) return;
+          profilePopup.classList.add("is-open");
+          profilePopup.setAttribute("aria-hidden", "false");
+          profileTrigger.setAttribute("aria-expanded", "true");
+        };
+
+        const togglePopup = () => {
+          if (!profilePopup || !profileTrigger) return;
+          if (profilePopup.classList.contains("is-open")) {
+            closePopup();
+            return;
+          }
+          openPopup();
+        };
+
+        if (profileTrigger) {
+          profileTrigger.addEventListener("click", (e) => {
+            e.stopPropagation();
+            togglePopup();
           });
         }
 
-        setName();
+        document.addEventListener("click", () => {
+          if (profilePopup?.classList.contains("is-open")) {
+            closePopup();
+          }
+        });
+
+        document.addEventListener("keyup", (e) => {
+          if (escKey(e) && profilePopup?.classList.contains("is-open")) {
+            closePopup();
+            profileTrigger?.focus();
+          }
+        });
+
+        setProfile();
         loadExams();
       })();
     </script>

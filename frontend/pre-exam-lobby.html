@@ -1009,6 +1009,7 @@
             const result = await window.Morpheus.startExam(exam_id);
             sessionStorage.setItem("morpheus_session_id", result.session_id);
             sessionStorage.setItem("morpheus_exam_id", exam_id);
+            sessionStorage.setItem("morpheus_exam_duration", result.duration_minutes || 90);
             window.location.href = `exam-interface.html?exam_id=${exam_id}`;
           } catch (error) {
             setStatus(els.step3Status, error?.message || "Start failed", "error");

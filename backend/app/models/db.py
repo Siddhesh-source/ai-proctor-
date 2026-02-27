@@ -113,6 +113,9 @@ class Response(Base):
     time_spent_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    grading_breakdown: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    manually_graded: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    override_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     session: Mapped[Session] = relationship("Session", back_populates="responses")
     question: Mapped[Question] = relationship("Question", back_populates="responses")
