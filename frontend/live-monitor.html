@@ -17,578 +17,607 @@
         --border-strong: rgba(255, 255, 255, 0.22);
         --accent: #d7ff45;
         --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
-        --radius: 20px;
-        --radius-lg: 28px;
+        --radius: 16px;
+        --radius-lg: 22px;
         --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-        --container: 1120px;
-
+        --container: 1320px;
+        --green: #00d896;
+        --yellow: #ffd166;
+        --red: #ff7a7a;
         --font-heading: "Anton", sans-serif;
         --font-body: "Proxima Nova", sans-serif;
       }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: var(--font-body); background: linear-gradient(90deg, #181818 0%, var(--bg) 60%); color: var(--text); min-height: 100vh; }
+      h1,h2,h3,.title,.panel-title { font-family: var(--font-heading); font-weight: 400; }
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+      .page { padding: 20px 24px 64px; }
+      .container { width: 100%; max-width: var(--container); margin: 0 auto; display: grid; gap: 16px; }
 
-      body {
-        font-family: var(--font-body);
-        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
-        color: var(--text);
-        min-height: 100vh;
-      }
+      .header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .title { font-size: 48px; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1; }
+      .subtitle { color: var(--muted); font-size: 13px; line-height: 1.6; }
 
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      .title {
-        font-family: var(--font-heading);
-        font-weight: 400;
-      }
+      .button { border-radius: 999px; padding: 9px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid var(--border); background: rgba(255,255,255,0.02); color: var(--text); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; line-height: 1; transition: transform 180ms var(--ease), border-color 180ms var(--ease), background 180ms var(--ease); }
+      .button:hover { transform: translateY(-1px); border-color: var(--border-strong); background: rgba(255,255,255,0.04); }
+      .button.primary { background: var(--accent); color: #000; border-color: transparent; }
+      .button.sm { padding: 5px 10px; font-size: 10px; }
+      .button.danger { border-color: rgba(255,120,120,0.5); color: var(--red); }
+      .button.active-filter { background: rgba(255,255,255,0.1); border-color: var(--accent); }
 
-      .page {
-        padding: 28px 24px 64px;
-      }
+      .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; }
+      .stat { border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; background: rgba(0,0,0,0.3); min-width: 120px; }
+      .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin-bottom: 4px; }
+      .stat-value { font-size: 24px; font-family: var(--font-heading); letter-spacing: 0.04em; }
 
-      .container {
-        width: 100%;
-        max-width: var(--container);
-        margin: 0 auto;
-        display: grid;
-        gap: 24px;
-      }
+      .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .search-input { border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.3); color: var(--text); padding: 8px 12px; font-size: 12px; width: 220px; }
+      .search-input::placeholder { color: var(--muted); }
 
-      .hero-head {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        position: relative;
-        padding-top: 6px;
-      }
+      .monitor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 
-      .header-right {
+      .student-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: rgba(255,255,255,0.02); overflow: hidden; transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease); position: relative; }
+      .student-card:hover { border-color: var(--border-strong); }
+      .student-card.flagged { border-color: rgba(255,120,120,0.4); box-shadow: 0 0 20px rgba(255,80,80,0.1); }
+      .student-card.watched { border-color: rgba(215,255,69,0.5); box-shadow: 0 0 20px rgba(215,255,69,0.08); }
+
+      .card-frame { width: 100%; height: 170px; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+      .card-frame video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+      .card-frame .no-feed { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
+      .card-frame .video-screen {
         position: absolute;
-        top: 0;
-        right: -80px;
-        display: flex;
-        align-items: center;
-      }
-
-      .profile-trigger {
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.4);
-        padding: 2px;
-        background: linear-gradient(160deg, rgba(0, 200, 150, 0.7), rgba(0, 150, 200, 0.9));
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .profile-trigger img {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
-        object-fit: cover;
-      }
-
-      .org-tab {
-        width: calc(100% + 60px);
-        margin-left: -30px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        font-size: 12px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-
-      .org-brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .org-brand img {
-        width: 40px;
-        height: 40px;
-        object-fit: contain;
-      }
-
-      .org-title {
-        font-size: 16px;
-        letter-spacing: 0.02em;
-        text-transform: none;
-        font-weight: 700;
-      }
-
-      .org-subtitle {
-        font-size: 11px;
-        letter-spacing: 0.3em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.5);
-      }
-
-      .org-actions {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin-right: 40px;
-      }
-
-      .org-status,
-      .org-chip {
-        border-radius: 999px;
-        padding: 4px 10px;
-        font-size: 11px;
-        letter-spacing: 0.2em;
-      }
-
-      .org-status {
-        background: rgba(0, 214, 255, 0.14);
-        color: #00d8ff;
-      }
-
-      .org-chip {
-        background: rgba(255, 255, 255, 0.06);
-        color: rgba(255, 255, 255, 0.8);
-      }
-
-      .org-info {
-        width: 100%;
-        margin-top: 6px;
-      }
-
-      .org-info-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 18px;
-        letter-spacing: 0.08em;
-        font-size: 12px;
-      }
-
-      .org-info-name {
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-
-      .org-info-status {
-        color: #00d896;
-      }
-
-      .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
-      }
-
-      .title {
-        font-size: 52px;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        line-height: 1;
-      }
-
-      .subtitle {
-        color: var(--muted);
-        font-size: 14px;
-        max-width: 520px;
-        line-height: 1.7;
-      }
-
-      .button {
-        border-radius: 999px;
-        padding: 10px 16px;
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
+        bottom: 8px;
+        right: 8px;
+        width: 120px;
+        height: 80px;
         border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.02);
-        color: var(--text);
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
-      }
-
-      .button:hover {
-        transform: translateY(-1px);
-        border-color: var(--border-strong);
-        background: rgba(255, 255, 255, 0.04);
-      }
-
-      .button.primary {
-        background: var(--accent);
-        color: rgba(0, 0, 0, 0.92);
-        border-color: transparent;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-      }
-
-      .card {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: rgba(255, 255, 255, 0.03);
-        box-shadow: var(--shadow);
-        padding: 16px;
-        display: grid;
-        gap: 12px;
-      }
-
-      .video-frame {
-        border-radius: var(--radius);
-        border: 1px solid var(--border-strong);
-        background: linear-gradient(140deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-        height: 160px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--muted);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        overflow: hidden;
-      }
-
-      .video-frame img {
-        width: 100%;
-        height: 100%;
+        border-radius: 10px;
+        background: #000;
         object-fit: cover;
+        z-index: 2;
       }
 
-      .student-name {
-        font-size: 16px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-      }
+      .card-badge { position: absolute; top: 8px; left: 8px; border-radius: 999px; padding: 3px 8px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; z-index: 2; }
+      .badge-active { background: rgba(0,216,150,0.25); color: var(--green); border: 1px solid rgba(0,216,150,0.4); }
+      .badge-completed { background: rgba(255,255,255,0.08); color: var(--muted); border: 1px solid var(--border); }
+      .badge-flagged { background: rgba(255,120,120,0.25); color: var(--red); border: 1px solid rgba(255,120,120,0.4); }
 
-      .violations {
-        color: var(--muted);
-        font-size: 13px;
-      }
+      .card-integrity { position: absolute; top: 8px; right: 8px; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; border: 1px solid var(--border); background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 2; }
 
-      .log-table {
-        width: 100%;
-        border-collapse: collapse;
-      }
+      .card-body { padding: 12px 14px; display: grid; gap: 8px; }
+      .card-name { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .card-email { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-      .log-table th,
-      .log-table td {
-        padding: 12px 16px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        text-align: left;
-        font-size: 12px;
-      }
+      .card-stats { display: flex; gap: 10px; font-size: 11px; color: var(--muted); }
+      .card-stats span { display: flex; align-items: center; gap: 4px; }
+      .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 
-      .log-table th {
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: 11px;
-        color: rgba(255, 255, 255, 0.7);
+      .card-violations-mini { display: flex; gap: 4px; flex-wrap: wrap; }
+      .violation-chip { border-radius: 6px; padding: 2px 6px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; background: rgba(255,120,120,0.15); color: var(--red); border: 1px solid rgba(255,120,120,0.25); }
+
+      .card-actions { display: flex; gap: 6px; padding: 0 14px 12px; }
+
+      .watch-btn { position: absolute; bottom: 56px; right: 10px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.5); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; z-index: 2; backdrop-filter: blur(4px); transition: all 160ms var(--ease); }
+      .watch-btn:hover, .watch-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(215,255,69,0.1); }
+
+      .logs-panel { border: 1px solid var(--border); border-radius: var(--radius-lg); background: rgba(255,255,255,0.02); overflow: hidden; }
+      .logs-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+      .panel-title { text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; }
+      .logs-scroll { max-height: 360px; overflow-y: auto; }
+      .log-row { display: grid; grid-template-columns: 90px 80px 140px 1fr; gap: 8px; padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; align-items: center; }
+      .log-row:hover { background: rgba(255,255,255,0.02); }
+      .log-time { color: var(--muted); font-variant-numeric: tabular-nums; }
+      .log-session { color: var(--muted); font-family: monospace; font-size: 10px; }
+      .log-event { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; font-size: 10px; }
+      .log-event.violation { color: var(--red); }
+      .log-event.info { color: var(--green); }
+      .log-explain { color: var(--muted); }
+      .log-empty { padding: 24px 18px; color: var(--muted); font-size: 12px; }
+
+      @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+      .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 1.5s infinite; margin-right: 6px; }
+
+
+      @media (max-width: 768px) {
+        .monitor-grid { grid-template-columns: 1fr; }
+        .log-row { grid-template-columns: 70px 60px 1fr; }
+        .log-explain { display: none; }
       }
     </style>
   </head>
   <body>
     <div class="page">
       <div class="container">
-        <div class="hero-head">
-          <div class="org-tab">
-            <div class="org-brand">
-              <img src="vit.png" alt="Org logo" />
-              <div>
-                <div class="org-title">Vishwakarma Institute of Technology</div>
-                <div class="org-subtitle">Pune</div>
-              </div>
-            </div>
-            <div class="org-actions">
-              <span class="org-status">Verified</span>
-              <span class="org-chip">FACULTY</span>
-            </div>
-          </div>
-          <div class="org-info">
-            <div class="org-info-row">
-              <span class="org-info-name">Himanshu Deshmukh</span>
-              <span class="org-info-status">Active</span>
-              <span class="org-info-detail">Registration No: 12414955</span>
-              <span class="org-info-detail">BTech - Computer Science and Engineering (AI &amp; ML)</span>
-            </div>
-          </div>
-          <div class="header-right">
-            <div class="profile-trigger">
-              <img src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
-            </div>
-          </div>
-        </div>
         <header class="header">
           <div>
-            <div class="title">Live Monitoring</div>
-            <div class="subtitle">
-              Real-time footage of students currently attempting the exam. Review violations beneath each feed.
-            </div>
-            <div class="subtitle" id="monitor-status"></div>
+            <div class="title">Live Monitor</div>
+            <div class="subtitle" id="monitor-subtitle">Loading...</div>
           </div>
-          <div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="button" id="btn-pause" type="button"><span class="live-dot"></span>Live</button>
             <a class="button" href="faculty.html">Back to Dashboard</a>
           </div>
         </header>
 
-        <section class="card" aria-label="Monitor controls">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Monitor Controls</div>
-              <div class="muted">Live monitoring for the selected exam.</div>
-            </div>
-            <div class="quick-actions">
-              <button id="refresh-monitor" class="button" type="button">Refresh</button>
-            </div>
-          </div>
-        </section>
+        <div class="stats-bar">
+          <div class="stat"><div class="stat-label">Active</div><div class="stat-value" id="stat-active">-</div></div>
+          <div class="stat"><div class="stat-label">Total</div><div class="stat-value" id="stat-total">-</div></div>
+          <div class="stat"><div class="stat-label">Flagged</div><div class="stat-value" id="stat-flagged" style="color:var(--red)">-</div></div>
+          <div class="stat"><div class="stat-label">Watching</div><div class="stat-value" id="stat-watching" style="color:var(--accent)">-</div></div>
+        </div>
 
-        <section class="grid" aria-label="Live student monitoring"></section>
+        <div class="toolbar">
+          <input class="search-input" id="search" type="text" placeholder="Search student name or email..." />
+          <button class="button sm" id="filter-all">All</button>
+          <button class="button sm" id="filter-active">Active Only</button>
+          <button class="button sm" id="filter-flagged">Flagged</button>
+          <button class="button sm" id="filter-watched">Watched</button>
+        </div>
 
-        <section class="card" aria-label="Exam logs">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Exam Logs</div>
-              <div class="muted">Proctoring violations and system events for this exam.</div>
-            </div>
+        <div class="monitor-grid" id="grid"></div>
+
+        <div class="logs-panel">
+          <div class="logs-header">
+            <div class="panel-title">Live Activity Log</div>
+            <span style="font-size:11px;color:var(--muted);" id="log-count">0 events</span>
           </div>
-          <div style="overflow:auto;">
-            <table class="log-table">
-              <thead>
-                <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">Session</th>
-                  <th scope="col">Event</th>
-                  <th scope="col">Explanation</th>
-                </tr>
-              </thead>
-              <tbody id="logs-body"></tbody>
-            </table>
-          </div>
-        </section>
+          <div class="logs-scroll" id="logs-scroll"></div>
+        </div>
       </div>
     </div>
+
     <script src="api.js"></script>
     <script>
-      const start = () => {
-        if (!Morpheus.requireAuth("professor")) {
+      (() => {
+        if (!Morpheus.requireAuth("professor")) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.replace("#", ""));
+        const exam_id = urlParams.get("exam_id") || hashParams.get("exam_id");
+        console.log("[MONITOR] exam_id:", exam_id, "url:", window.location.href);
+
+        const $ = (id) => document.getElementById(id);
+        const grid = $("grid");
+        const logsEl = $("logs-scroll");
+
+        if (!exam_id) {
+          $("monitor-subtitle").textContent = "No exam selected.";
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;"><a class="button primary" href="faculty.html">Go to Dashboard</a></div>';
           return;
         }
 
-        let exam_id =
-          new URLSearchParams(window.location.search).get("exam_id") ||
-          sessionStorage.getItem("morpheus_exam_id");
-
-        const els = {
-          container: document.querySelector("section.grid"),
-          activeStatus: document.querySelector(".org-info-status"),
-          logsBody: document.getElementById("logs-body"),
-          monitorStatus: document.getElementById("monitor-status"),
-          refreshButton: document.getElementById("refresh-monitor"),
+        const VLABEL = {
+          phone_detected:"Phone", gaze_away:"Gaze Away", tab_switch:"Tab Switch",
+          raf_tab_switch:"Tab Switch", speech_detected:"Speech", speech_cheating:"Cheating Speech",
+          multiple_faces:"Multi-Face", no_mouse:"No Mouse", screenshot_attempt:"Screenshot",
+          copy_paste:"Copy/Paste", window_resize:"Resize", multiple_monitors:"Multi-Monitor",
+          screen_share_detected:"Screen Share",
+        };
+        const VEXPLAIN = {
+          phone_detected:"Mobile device in camera", gaze_away:"Looking away from screen",
+          tab_switch:"Browser tab switch", raf_tab_switch:"Tab switch via frame timing",
+          speech_detected:"Voice activity detected", speech_cheating:"Suspicious speech content",
+          multiple_faces:"Multiple people in frame", no_mouse:"Mouse left exam window",
+          screenshot_attempt:"Screenshot attempt", copy_paste:"Copy/paste blocked",
+          window_resize:"Window resized", multiple_monitors:"Multiple monitors",
+          screen_share_detected:"Screen sharing", session_started:"Exam session started",
+          session_finished:"Exam submitted",
         };
 
-        const getIntegrity = (session) => {
-          const value = Number(session?.integrity_score);
-          return Number.isFinite(value) ? value : null;
+        const watchlist = new Set(JSON.parse(sessionStorage.getItem("monitor_watchlist") || "[]"));
+        let filter = "all", search = "", paused = false;
+        let students = [], logs = [], examTitle = null;
+
+        // ---- Helpers ----
+        const esc = (s) => { const d = document.createElement("div"); d.textContent = s||""; return d.innerHTML; };
+        const iColor = (v) => v > 80 ? "var(--green)" : v >= 50 ? "var(--yellow)" : "var(--red)";
+        const saveWatch = () => sessionStorage.setItem("monitor_watchlist", JSON.stringify([...watchlist]));
+
+        // ---- Stats ----
+        const renderStats = () => {
+          $("stat-active").textContent = students.filter(s => s.status==="active").length;
+          $("stat-total").textContent = students.length;
+          $("stat-flagged").textContent = students.filter(s => s.integrity_score<50).length;
+          $("stat-watching").textContent = watchlist.size;
+          const label = examTitle || exam_id.slice(0,8) + "...";
+          $("monitor-subtitle").textContent = `${label} | ${paused ? "Paused" : "Live"}`;
         };
 
-        const formatScore = (value) => {
-          if (value === null || value === undefined) return "—";
-          return value;
-        };
-
-        const integrityColor = (score) => {
-          if (score === null) return "rgba(255,255,255,0.7)";
-          if (score > 80) return "#00d896";
-          if (score >= 50) return "#ffd166";
-          return "#ff7a7a";
-        };
-
-        const renderSessionCards = (sessions) => {
-          if (!els.container) return;
-          const sorted = [...(sessions || [])].sort((a, b) => {
-            const aIntegrity = getIntegrity(a) ?? 0;
-            const bIntegrity = getIntegrity(b) ?? 0;
-            const aFlagged = aIntegrity < 50;
-            const bFlagged = bIntegrity < 50;
-            if (aFlagged !== bFlagged) return aFlagged ? -1 : 1;
-            return aIntegrity - bIntegrity;
+        // ---- Filtering/Sorting ----
+        const getVisible = () => {
+          let list = students;
+          if (search) { const q = search.toLowerCase(); list = list.filter(s => s.student_name.toLowerCase().includes(q) || s.student_email.toLowerCase().includes(q)); }
+          if (filter === "active") list = list.filter(s => s.status==="active");
+          else if (filter === "flagged") list = list.filter(s => s.integrity_score<50);
+          else if (filter === "watched") list = list.filter(s => watchlist.has(s.session_id));
+          return [...list].sort((a,b) => {
+            const wa = watchlist.has(a.session_id)?0:1, wb = watchlist.has(b.session_id)?0:1;
+            if (wa !== wb) return wa - wb;
+            return a.integrity_score - b.integrity_score;
           });
+        };
 
-          els.container.innerHTML = "";
-          if (!sorted.length) {
-            const empty = document.createElement("div");
-            empty.className = "card";
-            empty.innerHTML = `<div class="student-name">No active sessions</div>`;
-            els.container.appendChild(empty);
+        // ---- Card Management ----
+        // Instead of innerHTML, we create/update individual card elements by session_id.
+        // This way images are NEVER destroyed by DOM rebuilds.
+        const cardElements = {}; // session_id -> DOM element
+
+        const createCard = (s) => {
+          const card = document.createElement("div");
+          card.className = "student-card";
+          card.dataset.sid = s.session_id;
+
+          // Frame container with persistent <video> elements
+          const frame = document.createElement("div");
+          frame.className = "card-frame";
+          frame.dataset.session = s.session_id;
+
+          const videoMain = document.createElement("video");
+          videoMain.className = "video-main";
+          videoMain.autoplay = true;
+          videoMain.muted = true;
+          videoMain.playsInline = true;
+          videoMain.style.display = "none";
+          frame.appendChild(videoMain);
+
+          const videoScreen = document.createElement("video");
+          videoScreen.className = "video-screen";
+          videoScreen.autoplay = true;
+          videoScreen.muted = true;
+          videoScreen.playsInline = true;
+          videoScreen.style.display = "none";
+          frame.appendChild(videoScreen);
+
+          const noFeed = document.createElement("span");
+          noFeed.className = "no-feed";
+          noFeed.textContent = s.status === "active" ? "Waiting for feed..." : "No Feed";
+          frame.appendChild(noFeed);
+
+          const badge = document.createElement("span");
+          badge.className = "card-badge";
+          frame.appendChild(badge);
+
+          const integrity = document.createElement("span");
+          integrity.className = "card-integrity";
+          frame.appendChild(integrity);
+
+          card.appendChild(frame);
+
+          // Watch button
+          const watchBtn = document.createElement("button");
+          watchBtn.className = "watch-btn";
+          watchBtn.innerHTML = "&#9733;";
+          watchBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (watchlist.has(s.session_id)) watchlist.delete(s.session_id); else watchlist.add(s.session_id);
+            saveWatch();
+            rebuildGrid();
+          });
+          card.appendChild(watchBtn);
+
+          // Body
+          const body = document.createElement("div");
+          body.className = "card-body";
+          body.innerHTML = `
+            <div class="card-name"></div>
+            <div class="card-email"></div>
+            <div class="card-stats"></div>
+            <div class="card-violations-mini"></div>
+          `;
+          card.appendChild(body);
+
+          // Actions
+          const actions = document.createElement("div");
+          actions.className = "card-actions";
+          const detailBtn = document.createElement("button");
+          detailBtn.className = "button sm";
+          detailBtn.textContent = "Detail";
+          detailBtn.addEventListener("click", () => {
+            window.location.href = `result.html?session_id=${encodeURIComponent(s.session_id)}`;
+          });
+          actions.appendChild(detailBtn);
+          card.appendChild(actions);
+
+          cardElements[s.session_id] = card;
+          return card;
+        };
+
+        const updateCard = (card, s) => {
+          const isWatched = watchlist.has(s.session_id);
+          const isFlagged = s.integrity_score < 50;
+          card.className = `student-card ${isWatched ? "watched" : isFlagged ? "flagged" : ""}`;
+
+          // Update badge
+          const badge = card.querySelector(".card-badge");
+          if (s.status === "active") {
+            badge.className = "card-badge badge-active";
+            badge.textContent = "Live";
+          } else {
+            badge.className = "card-badge badge-completed";
+            badge.textContent = "Done";
+          }
+
+          // Update integrity overlay
+          const intEl = card.querySelector(".card-integrity");
+          intEl.style.color = iColor(s.integrity_score);
+          intEl.textContent = Math.round(s.integrity_score) + "%";
+
+          // Update no-feed text
+          const noFeed = card.querySelector(".no-feed");
+          const mainVideo = card.querySelector(".video-main");
+          if (mainVideo && mainVideo.srcObject && mainVideo.style.display !== "none") {
+            if (noFeed) noFeed.style.display = "none";
+          } else {
+            if (noFeed) {
+              noFeed.style.display = "";
+              noFeed.textContent = s.status === "active" ? "Waiting for feed..." : "No Feed";
+            }
+          }
+
+          // Update watch button
+          const watchBtn = card.querySelector(".watch-btn");
+          watchBtn.className = `watch-btn ${isWatched ? "active" : ""}`;
+          watchBtn.title = isWatched ? "Unwatch" : "Watch";
+
+          // Update body
+          card.querySelector(".card-name").textContent = s.student_name || "Unknown";
+          card.querySelector(".card-email").textContent = s.student_email || "";
+          card.querySelector(".card-stats").innerHTML = `
+            <span><span class="dot" style="background:${iColor(s.integrity_score)}"></span>${Math.round(s.integrity_score)}% integrity</span>
+            <span>${s.violation_count} violation${s.violation_count!==1?"s":""}</span>
+          `;
+          const chips = (s.recent_violations||[]).map(v =>
+            `<span class="violation-chip">${VLABEL[v.type]||v.type}</span>`
+          ).join("") || '<span style="font-size:10px;color:var(--muted)">No violations</span>';
+          card.querySelector(".card-violations-mini").innerHTML = chips;
+        };
+
+        const rebuildGrid = () => {
+          renderStats();
+          const visible = getVisible();
+
+          if (!visible.length) {
+            // Remove all cards from grid but keep them in cardElements for reuse
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);font-size:13px;">
+              ${students.length ? "No students match current filter." : "No sessions found for this exam."}
+            </div>`;
             return;
           }
 
-          sorted.forEach((session) => {
-            const integrity = getIntegrity(session);
-            const card = document.createElement("div");
-            card.className = "card";
-            const sessionId = session.session_id || session.id || "";
-            card.innerHTML = `
-              <div class="video-frame" data-session="${sessionId}">Live Feed</div>
-              <div class="student-name">${session.student_name || "Student"}</div>
-              <div class="violations">Violations: ${session.violation_count ?? 0}</div>
-              <div class="violations">Total Score: ${formatScore(session.total_score)}</div>
-              <div class="violations" style="color:${integrityColor(integrity)};">Integrity: ${formatScore(integrity)}</div>
-              <div class="violations">Status: ${session.status || "unknown"}</div>
-              <div>
-                <button class="button" type="button">View Detail</button>
-              </div>
-            `;
-            const button = card.querySelector("button");
-            button.addEventListener("click", () => {
-              if (!sessionId) return;
-              window.location.href = `result.html?session_id=${encodeURIComponent(sessionId)}`;
-            });
-            if (!sessionId) {
-              button.disabled = true;
-            }
-            els.container.appendChild(card);
-          });
-        };
+          // Build the desired order of session IDs
+          const desiredIds = visible.map(s => s.session_id);
 
-        const loadFrames = async (sessions) => {
-          const frames = Array.from(document.querySelectorAll(".video-frame[data-session]"));
-          await Promise.all(
-            frames.map(async (frame) => {
-              const sessionId = frame.getAttribute("data-session");
-              if (!sessionId) return;
-              try {
-                const result = await Morpheus.getLiveFrame(sessionId);
-                if (result?.frame_base64) {
-                  frame.innerHTML = `<img src="${result.frame_base64}" alt="Live frame" />`;
-                }
-              } catch (error) {
-                // ignore
+          // Remove cards not in the visible set
+          for (const child of Array.from(grid.children)) {
+            if (child.dataset && child.dataset.sid && !desiredIds.includes(child.dataset.sid)) {
+              grid.removeChild(child);
+            } else if (!child.dataset || !child.dataset.sid) {
+              grid.removeChild(child); // remove placeholder messages
+            }
+          }
+
+          // Create/update cards and ensure correct order
+          let prevNode = null;
+          for (const s of visible) {
+            let card = cardElements[s.session_id];
+            if (!card) card = createCard(s);
+            updateCard(card, s);
+
+            // Ensure card is in grid and in correct position
+            if (!card.parentNode || card.parentNode !== grid) {
+              if (prevNode && prevNode.nextSibling) {
+                grid.insertBefore(card, prevNode.nextSibling);
+              } else if (!prevNode) {
+                grid.insertBefore(card, grid.firstChild);
+              } else {
+                grid.appendChild(card);
               }
-            })
-          );
-        };
-
-        const renderLogs = (logs) => {
-          if (!els.logsBody) return;
-          if (!Array.isArray(logs) || logs.length === 0) {
-            els.logsBody.innerHTML = `
-              <tr>
-                <td colspan="4" class="muted">No logs for this exam yet.</td>
-              </tr>
-            `;
-            return;
+            }
+            prevNode = card;
           }
-          const ordered = [...logs].sort((a, b) => {
-            const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return bTime - aTime;
+
+          // Start/stop WebRTC per session
+          visible.forEach((s) => {
+            if (s.status === "active") {
+              ensurePeer(s);
+            } else {
+              closePeer(s.session_id);
+            }
           });
-          els.logsBody.innerHTML = ordered
-            .map((log) => {
-              const time = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
-              const session = log.session_id ? log.session_id.slice(0, 8) : "—";
-              const event = log.message || log.event_type || "—";
-              const explanation = log.explanation || "—";
-              return `
-                <tr>
-                  <td>${time}</td>
-                  <td>${session}</td>
-                  <td>${event}</td>
-                  <td>${explanation}</td>
-                </tr>
-              `;
-            })
-            .join("");
-        };
 
-        const resolveExam = async () => {
-          if (exam_id) return exam_id;
-          try {
-            const exams = await Morpheus.getProfessorExams();
-            if (exams?.length) {
-              const sorted = [...exams].sort(
-                (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
-              );
-              exam_id = sorted[0].id;
-              sessionStorage.setItem("morpheus_exam_id", exam_id);
+          const visibleIds = new Set(visible.map((s) => s.session_id));
+          Object.keys(rtcPeers).forEach((sid) => {
+            if (!visibleIds.has(sid)) {
+              closePeer(sid);
             }
-          } catch (error) {
-            // ignore
-          }
-          return exam_id;
-        };
-
-        const loadSessions = async () => {
-          await resolveExam();
-          if (!exam_id) {
-            renderSessionCards([]);
-            renderLogs([]);
-            if (els.monitorStatus) {
-              els.monitorStatus.textContent = "No exam selected.";
-            }
-            return;
-          }
-          let sessions = [];
-          try {
-            sessions = await Morpheus.getExamResults(exam_id);
-          } catch (error) {
-            sessions = [];
-            if (els.monitorStatus) {
-              els.monitorStatus.textContent = `Exam ${exam_id}: Failed to load sessions`;
-            }
-          }
-          renderSessionCards(sessions);
-          if (els.activeStatus) {
-            const activeCount = sessions.filter((session) => session.status === "active").length;
-            els.activeStatus.textContent = `Active (${activeCount})`;
-          }
-
-          if (els.monitorStatus) {
-            els.monitorStatus.textContent = `Exam ${exam_id}: ${sessions.length} session(s)`;
-          }
-
-          loadFrames(sessions);
-
-          try {
-            const logs = await Morpheus.getExamLogs(exam_id);
-            renderLogs(logs);
-            if (els.monitorStatus) {
-              els.monitorStatus.textContent = `Exam ${exam_id}: ${sessions.length} session(s), ${logs.length} log(s)`;
-            }
-          } catch (error) {
-            renderLogs([]);
-          }
-        };
-
-        if (els.refreshButton) {
-          els.refreshButton.addEventListener("click", () => {
-            loadSessions();
           });
-        }
 
-        loadSessions();
-        setInterval(loadSessions, 5000);
-      };
+          // Fix order if needed: ensure cards appear in correct sequence
+          const currentOrder = Array.from(grid.querySelectorAll(".student-card")).map(c => c.dataset.sid);
+          if (JSON.stringify(currentOrder) !== JSON.stringify(desiredIds)) {
+            for (const s of visible) {
+              const card = cardElements[s.session_id];
+              if (card) grid.appendChild(card); // re-appending in order
+            }
+          }
+        };
 
-      start();
+        // ---- WebRTC Viewer ----
+        const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+        const rtcPeers = {}; // session_id -> { pc, ws, mainVideo, screenVideo, trackCount }
+
+        const ensurePeer = async (s) => {
+          const sid = s.session_id;
+          if (rtcPeers[sid]) return;
+          const card = cardElements[sid];
+          if (!card) return;
+
+          const wsBase = await window.Morpheus.getWebSocketBase();
+          const token = window.Morpheus.getToken();
+          const ws = new WebSocket(`${wsBase}/ws/webrtc/${sid}?token=${token}`);
+          const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+          const mainVideo = card.querySelector(".video-main");
+          const screenVideo = card.querySelector(".video-screen");
+
+          rtcPeers[sid] = { ws, pc, mainVideo, screenVideo, trackCount: 0 };
+
+          pc.ontrack = (event) => {
+            const peer = rtcPeers[sid];
+            if (!peer) return;
+            const track = event.track;
+            const stream = event.streams[0];
+            const label = (track.label || "").toLowerCase();
+            const useScreen = label.includes("screen") || peer.trackCount > 0;
+
+            if (!useScreen && peer.mainVideo) {
+              peer.mainVideo.srcObject = stream;
+              peer.mainVideo.style.display = "block";
+              peer.mainVideo.play().catch(() => {});
+            } else if (peer.screenVideo) {
+              peer.screenVideo.srcObject = stream;
+              peer.screenVideo.style.display = "block";
+              peer.screenVideo.play().catch(() => {});
+            }
+            peer.trackCount += 1;
+
+            const noFeed = card.querySelector(".no-feed");
+            if (noFeed) noFeed.style.display = "none";
+          };
+
+          pc.onicecandidate = (event) => {
+            if (event.candidate) {
+              ws.send(JSON.stringify({ type: "ice", candidate: event.candidate }));
+            }
+          };
+
+          pc.onconnectionstatechange = () => {
+            console.log(`[WEBRTC] ${sid} connection:`, pc.connectionState);
+          };
+
+          ws.onopen = () => {
+            ws.send(JSON.stringify({ type: "register", role: "professor" }));
+            ws.send(JSON.stringify({ type: "request_offer" }));
+          };
+
+          ws.onmessage = async (event) => {
+            let message;
+            try {
+              message = JSON.parse(event.data);
+            } catch {
+              return;
+            }
+            if (message.type === "offer" && message.sdp) {
+              await pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              ws.send(JSON.stringify({ type: "answer", sdp: pc.localDescription }));
+            }
+            if (message.type === "ice" && message.candidate) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+              } catch (error) {
+                console.warn("[WEBRTC] addIceCandidate failed:", error?.message || error);
+              }
+            }
+            if (message.type === "peer_missing") {
+              const noFeed = card.querySelector(".no-feed");
+              if (noFeed) noFeed.textContent = "Waiting for student...";
+            }
+          };
+
+          ws.onclose = () => {
+            console.warn(`[WEBRTC] ${sid} signaling closed`);
+          };
+        };
+
+        const closePeer = (sid) => {
+          const peer = rtcPeers[sid];
+          if (!peer) return;
+          try { peer.ws.close(); } catch {}
+          try { peer.pc.close(); } catch {}
+          delete rtcPeers[sid];
+        };
+
+        // ---- Logs ----
+        const renderLogs = () => {
+          $("log-count").textContent = `${logs.length} events`;
+          if (!logs.length) { logsEl.innerHTML = '<div class="log-empty">No activity logs yet.</div>'; return; }
+          const sorted = [...logs].sort((a,b) => {
+            return (b.created_at?new Date(b.created_at).getTime():0) - (a.created_at?new Date(a.created_at).getTime():0);
+          });
+          logsEl.innerHTML = sorted.slice(0,100).map(log => {
+            const time = log.created_at ? new Date(log.created_at).toLocaleTimeString() : "--";
+            const sid = log.session_id ? log.session_id.slice(0,8) : "--";
+            const ev = log.event_type || "";
+            const isV = !ev.startsWith("session_");
+            const label = VLABEL[ev] || log.message || ev;
+            const explain = log.explanation || VEXPLAIN[ev] || "";
+            return `<div class="log-row">
+              <span class="log-time">${time}</span>
+              <span class="log-session">${sid}</span>
+              <span class="log-event ${isV?'violation':'info'}">${esc(label)}</span>
+              <span class="log-explain">${esc(explain)}</span>
+            </div>`;
+          }).join("");
+        };
+
+        // ---- Polling ----
+        const pollData = async () => {
+          if (paused) return;
+          try {
+            if (!examTitle) {
+              try {
+                const exams = await Morpheus.getProfessorExams();
+                const m = (exams||[]).find(e => e.id === exam_id);
+                if (m) examTitle = m.title;
+              } catch(e) {}
+            }
+            const [liveData, logData] = await Promise.all([
+              Morpheus.getLiveSessions(exam_id),
+              Morpheus.getExamLogs(exam_id),
+            ]);
+            students = liveData.students || [];
+            logs = logData || [];
+            console.log(`[MONITOR] Data poll: ${students.length} students, ${logs.length} logs`);
+            rebuildGrid();
+            renderLogs();
+          } catch (err) {
+            console.error("[MONITOR] Poll error:", err.message);
+          }
+        };
+
+        // ---- Filter/Search/Pause ----
+        const setFilter = (f) => {
+          filter = f;
+          document.querySelectorAll(".toolbar .button").forEach(b => b.classList.remove("active-filter"));
+          const btn = $(`filter-${f}`);
+          if (btn) btn.classList.add("active-filter");
+          rebuildGrid();
+        };
+        $("filter-all").addEventListener("click", () => setFilter("all"));
+        $("filter-active").addEventListener("click", () => setFilter("active"));
+        $("filter-flagged").addEventListener("click", () => setFilter("flagged"));
+        $("filter-watched").addEventListener("click", () => setFilter("watched"));
+        $("search").addEventListener("input", (e) => { search = e.target.value; rebuildGrid(); });
+        $("btn-pause").addEventListener("click", () => {
+          paused = !paused;
+          $("btn-pause").innerHTML = paused ? '&#9654; Paused' : '<span class="live-dot"></span>Live';
+          renderStats();
+        });
+
+        // ---- Start ----
+        console.log("[MONITOR] Starting for exam:", exam_id);
+        setFilter("all");
+
+        // First load: data then immediately frames
+        pollData();
+
+        // Data poll every 5s
+        setInterval(pollData, 5000);
+
+        // Frame poll every 1s (independent of data)
+      })();
     </script>
   </body>
 </html>

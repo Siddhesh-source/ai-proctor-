@@ -1,5 +1,5 @@
 const CONFIG = {
-  API_CANDIDATES: ['http://127.0.0.1:8000', 'http://localhost:8000']
+  API_CANDIDATES: ['http://localhost:8000', 'http://127.0.0.1:8000']
 };
 
 let activeApiOrigin = sessionStorage.getItem('morpheus_api_origin') || CONFIG.API_CANDIDATES[0];
@@ -29,6 +29,11 @@ async function resolveApiOrigin(forceProbe = false) {
   }
 
   return activeApiOrigin;
+}
+
+async function getWebSocketBase() {
+  const origin = await resolveApiOrigin();
+  return origin.replace('http://', 'ws://').replace('https://', 'wss://');
 }
 
 function getToken() {
@@ -75,12 +80,18 @@ async function apiCall(method, path, body = null, requiresAuth = true) {
     options.body = JSON.stringify(body);
   }
 
+  const isVerbose = !path.includes('/proctoring/frame') && !path.includes('/proctoring/audio');
+  if (isVerbose) {
+    console.log(`[API] ${method} ${path}`, body ? JSON.stringify(body).slice(0, 200) : '');
+  }
+
   let response;
   for (let attempt = 1; attempt <= 6; attempt += 1) {
     try {
       response = await fetch(url, options);
       break;
     } catch (error) {
+      console.warn(`[API] Fetch attempt ${attempt} failed for ${method} ${path}:`, error.message);
       if (attempt === 2 || attempt === 4) {
         await resolveApiOrigin(true);
       }
@@ -89,10 +100,12 @@ async function apiCall(method, path, body = null, requiresAuth = true) {
   }
 
   if (!response) {
+    console.error(`[API] All attempts failed for ${method} ${path}`);
     throw new Error('Backend not reachable. Start backend on 127.0.0.1:8000 and retry.');
   }
 
   if (response.status === 401 && !path.includes('/auth/face-verify')) {
+    console.warn('[API] 401 Unauthorized, redirecting to login');
     clearToken();
     window.location.href = 'login.html';
     return null;
@@ -107,7 +120,12 @@ async function apiCall(method, path, body = null, requiresAuth = true) {
 
   if (!response.ok) {
     const detail = data && data.detail ? data.detail : 'Request failed';
+    console.error(`[API] ${method} ${path} => ${response.status}: ${detail}`);
     throw new Error(detail);
+  }
+
+  if (isVerbose) {
+    console.log(`[API] ${method} ${path} => ${response.status} OK`);
   }
 
   return data;
@@ -236,9 +254,19 @@ async function getExamLogs(exam_id) {
   return apiCall('GET', `/proctoring/exam/${exam_id}/logs`);
 }
 
+async function getLiveSessions(exam_id) {
+  return apiCall('GET', `/proctoring/exam/${exam_id}/live`);
+}
+
 async function getLiveFrame(session_id) {
-  const stamp = Date.now();
-  return apiCall('GET', `/proctoring/session/${session_id}/frame?t=${stamp}`);
+  const origin = await resolveApiOrigin();
+  const url = `${origin}/api/v1/proctoring/session/${session_id}/frame?t=${Date.now()}`;
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(url, { headers, cache: 'no-store' });
+  if (!response.ok) return null;
+  return response.json();
 }
 
 function connectProctoringWS(session_id, onMessage) {
@@ -287,11 +315,13 @@ window.Morpheus = {
   downloadResultPdf,
   emailResult,
   getExamLogs,
+  getLiveSessions,
   connectProctoringWS,
   getToken,
   setToken,
   clearToken,
   getUser,
   setUser,
-  requireAuth
+  requireAuth,
+  getWebSocketBase
 };

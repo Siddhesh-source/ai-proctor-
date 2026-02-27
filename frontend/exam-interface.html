@@ -816,11 +816,15 @@
         const scheduleSave = (questionId, answer) => {
           if (saveTimer) _clearTimeout(saveTimer);
           setSavingStatus("Saving...");
+          console.log(`[EXAM] Scheduling save: q=${questionId}, answer="${answer.slice(0, 50)}"`);
           saveTimer = _setTimeout(async () => {
             try {
-              await window.Morpheus.submitAnswer(exam_id, session_id, questionId, answer);
+              console.log(`[EXAM] Submitting answer: exam=${exam_id}, session=${session_id}, q=${questionId}`);
+              const result = await window.Morpheus.submitAnswer(exam_id, session_id, questionId, answer);
+              console.log(`[EXAM] Answer saved OK:`, result);
               setSavingStatus("Saved");
-            } catch {
+            } catch (err) {
+              console.error(`[EXAM] Answer save FAILED for q=${questionId}:`, err.message);
               setSavingStatus("Not Saved");
             }
           }, 1000);
@@ -830,6 +834,7 @@
           const question = questions[currentIndex];
           if (!question) return;
           const value = getCurrentAnswer();
+          console.log(`[EXAM] Answer changed: q=${question.id}, type=${question.type}, value="${value.slice(0, 50)}"`);
           if (value) {
             answers[question.id] = value;
           } else {
@@ -885,12 +890,15 @@
             saveTimer = null;
           }
           const entries = Object.entries(answers);
+          console.log(`[EXAM] Flushing ${entries.length} answers before finish`);
           for (const [qid, answer] of entries) {
             if (answer) {
               try {
+                console.log(`[EXAM] Flush: q=${qid}, answer="${answer.slice(0, 50)}"`);
                 await window.Morpheus.submitAnswer(exam_id, session_id, qid, answer);
+                console.log(`[EXAM] Flush OK: q=${qid}`);
               } catch (e) {
-                console.error("Failed to flush answer for", qid, e);
+                console.error(`[EXAM] Flush FAILED: q=${qid}:`, e.message);
               }
             }
           }
@@ -904,11 +912,15 @@
             if (!window.confirm("Submit exam now?")) return;
           }
           finishing = true;
+          console.log(`[EXAM] Finishing exam: exam=${exam_id}, session=${session_id}, answers=${Object.keys(answers).length}`);
           try {
             await flushAllAnswers();
+            console.log(`[EXAM] Calling finishExam API`);
             await window.Morpheus.finishExam(exam_id, session_id);
+            console.log(`[EXAM] Exam finished, redirecting to results`);
             window.location.href = `result.html?session_id=${session_id}`;
-          } catch {
+          } catch (err) {
+            console.error(`[EXAM] Finish FAILED:`, err.message);
             finishing = false;
           }
         };
@@ -1140,13 +1152,128 @@
           window.location.href = `result.html?session_id=${encodeURIComponent(session_id)}`;
         };
 
+        const webRtcState = {
+          ws: null,
+          pc: null,
+          webcamStream: null,
+          screenStream: null,
+          trackIds: new Set(),
+          started: false,
+        };
+
+        const createSenderPeer = () => {
+          const pc = new RTCPeerConnection({
+            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+          });
+          pc.onicecandidate = (event) => {
+            if (event.candidate && webRtcState.ws) {
+              webRtcState.ws.send(JSON.stringify({ type: "ice", candidate: event.candidate }));
+            }
+          };
+          pc.onconnectionstatechange = () => {
+            console.log("[WEBRTC] Student connection:", pc.connectionState);
+          };
+          return pc;
+        };
+
+        const ensureTracks = async () => {
+          if (!webRtcState.webcamStream) {
+            webRtcState.webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          }
+          if (!webRtcState.screenStream) {
+            try {
+              webRtcState.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            } catch (error) {
+              console.warn("[WEBRTC] Screen share denied:", error?.message || error);
+              webRtcState.screenStream = null;
+            }
+          }
+        };
+
+        const addTracksToPeer = () => {
+          const streams = [webRtcState.webcamStream, webRtcState.screenStream].filter(Boolean);
+          streams.forEach((stream) => {
+            stream.getTracks().forEach((track) => {
+              if (webRtcState.trackIds.has(track.id)) return;
+              webRtcState.trackIds.add(track.id);
+              if (track.kind === "video") {
+                track.contentHint = "motion";
+              }
+              webRtcState.pc.addTrack(track, stream);
+            });
+          });
+        };
+
+        const sendOffer = async () => {
+          if (!webRtcState.pc) {
+            webRtcState.pc = createSenderPeer();
+          }
+          await ensureTracks();
+          addTracksToPeer();
+          const offer = await webRtcState.pc.createOffer();
+          await webRtcState.pc.setLocalDescription(offer);
+          webRtcState.ws?.send(JSON.stringify({
+            type: "offer",
+            sdp: webRtcState.pc.localDescription,
+          }));
+        };
+
+        const startWebRtcSender = async (sessionId) => {
+          if (webRtcState.started) return;
+          webRtcState.started = true;
+          try {
+            const wsBase = await window.Morpheus.getWebSocketBase();
+            const token = window.Morpheus.getToken();
+            const ws = new WebSocket(`${wsBase}/ws/webrtc/${sessionId}?token=${token}`);
+            webRtcState.ws = ws;
+
+            ws.onopen = () => {
+              ws.send(JSON.stringify({ type: "register", role: "student" }));
+            };
+            ws.onmessage = async (event) => {
+              let message;
+              try {
+                message = JSON.parse(event.data);
+              } catch {
+                return;
+              }
+              if (message.type === "request_offer") {
+                await sendOffer();
+              }
+              if (message.type === "answer" && message.sdp && webRtcState.pc) {
+                await webRtcState.pc.setRemoteDescription(new RTCSessionDescription(message.sdp));
+              }
+              if (message.type === "ice" && message.candidate && webRtcState.pc) {
+                try {
+                  await webRtcState.pc.addIceCandidate(new RTCIceCandidate(message.candidate));
+                } catch (error) {
+                  console.warn("[WEBRTC] addIceCandidate failed:", error?.message || error);
+                }
+              }
+            };
+            ws.onclose = () => {
+              console.warn("[WEBRTC] Student signaling closed");
+            };
+            ws.onerror = (err) => {
+              console.warn("[WEBRTC] Student signaling error:", err?.message || err);
+            };
+          } catch (error) {
+            console.warn("[WEBRTC] Failed to start sender:", error?.message || error);
+          }
+        };
+
         async function startProctoring(id) {
           let videoEl = document.querySelector("video");
+          if (videoEl?.srcObject && !webRtcState.webcamStream) {
+            webRtcState.webcamStream = videoEl.srcObject;
+          }
           if (!videoEl) {
             videoEl = document.createElement("video");
             videoEl.autoplay = true;
             videoEl.muted = true;
             videoEl.playsInline = true;
+            videoEl.muted = true;
+            videoEl.autoplay = true;
             videoEl.style.position = "fixed";
             videoEl.style.width = "1px";
             videoEl.style.height = "1px";
@@ -1155,8 +1282,15 @@
             try {
               const stream = await navigator.mediaDevices.getUserMedia({ video: true });
               videoEl.srcObject = stream;
+              if (!webRtcState.webcamStream) {
+                webRtcState.webcamStream = stream;
+              }
+              videoEl.play().catch(() => {});
+              videoEl.onloadedmetadata = () => {
+                videoEl.play().catch(() => {});
+              };
             } catch (error) {
-              // ignore camera errors
+              console.warn("[EXAM] Camera access failed:", error?.message || error);
             }
           }
           const canvas = document.createElement("canvas");
@@ -1168,7 +1302,7 @@
             try {
               if (!videoEl || videoEl.readyState < 2) return;
               ctx.drawImage(videoEl, 0, 0, 320, 240);
-              const frame_base64 = canvas.toDataURL("image/jpeg", 0.5).split(",")[1];
+              const frame_base64 = canvas.toDataURL("image/jpeg", 0.7).split(",")[1];
               window.Morpheus
                 .sendFrame(id, frame_base64)
                 .then((response) => {
@@ -1178,11 +1312,13 @@
                     handleCriticalIntegrity(response.integrity_score);
                   }
                 })
-                .catch(() => {});
+                .catch((err) => {
+                  console.warn("[EXAM] Failed to send frame:", err?.message || err);
+                });
             } catch (e) {
               // ignore
             }
-          }, 5000);
+          }, 1000);
 
           navigator.mediaDevices
             .getUserMedia({ audio: true })
@@ -1429,8 +1565,10 @@
 
         const loadQuestions = async () => {
           try {
+            console.log(`[EXAM] Loading questions for exam=${exam_id}, session=${session_id}`);
             const result = await window.Morpheus.getExamQuestions(exam_id);
             questions = Array.isArray(result) ? result : [];
+            console.log(`[EXAM] Loaded ${questions.length} questions:`, questions.map(q => ({ id: q.id, type: q.type, text: q.text?.slice(0, 40) })));
             if (!questions.length) {
               if (els.questionText) {
                 els.questionText.textContent = "No questions available.";
@@ -1440,7 +1578,9 @@
             renderQuestion(0);
             renderGrid();
             startProctoring(session_id);
+            startWebRtcSender(session_id);
           } catch (error) {
+            console.error(`[EXAM] Failed to load questions:`, error.message);
             if (els.questionText) {
               els.questionText.textContent = error?.message || "Failed to load questions.";
             }

@@ -1,13 +1,19 @@
-from fastapi import FastAPI
+import logging
+import traceback
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 
 from app.api.v1 import router as api_v1_router
 from app.api.v1.websocket import router as ws_router
+from app.api.v1.webrtc import router as webrtc_router
 from app.core.database import init_db
 from app.models.grading import nlp_model
 from app.models.ml_models import yolo
 
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -18,12 +24,24 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:5500",
         "http://127.0.0.1:5500",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
         "null",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled error on %s %s: %s", request.method, request.url.path, exc)
+    logger.debug(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
 
 
 @app.on_event("startup")
@@ -40,5 +58,6 @@ async def health_check() -> dict:
 
 app.include_router(api_v1_router, prefix="/api/v1")
 app.include_router(ws_router)
+app.include_router(webrtc_router)
 
 handler = Mangum(app)

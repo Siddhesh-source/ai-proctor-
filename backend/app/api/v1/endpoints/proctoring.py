@@ -285,6 +285,72 @@ async def process_violation(payload: dict, db: AsyncSession = Depends(get_db)) -
     return {"integrity_score": integrity_score}
 
 
+@router.get("/exam/{exam_id}/live")
+async def get_live_sessions(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Live monitoring data: active sessions sorted by integrity (worst first)."""
+    if current_user.role != "professor":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    try:
+        exam_uuid = uuid.UUID(exam_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid exam_id") from exc
+    from sqlalchemy import func as sqlfunc
+    sessions_result = await db.execute(
+        select(ExamSession, User)
+        .join(User, User.id == ExamSession.student_id)
+        .where(ExamSession.exam_id == exam_uuid)
+    )
+    rows = sessions_result.all()
+    session_ids = [s.id for s, _ in rows]
+
+    violation_counts: dict[uuid.UUID, int] = {}
+    recent_violations: dict[uuid.UUID, list] = {}
+    if session_ids:
+        vc = await db.execute(
+            select(ProctoringLog.session_id, sqlfunc.count(ProctoringLog.id))
+            .where(ProctoringLog.session_id.in_(session_ids))
+            .group_by(ProctoringLog.session_id)
+        )
+        violation_counts = {r[0]: r[1] for r in vc.all()}
+
+        recent = await db.execute(
+            select(ProctoringLog)
+            .where(ProctoringLog.session_id.in_(session_ids))
+            .order_by(ProctoringLog.created_at.desc())
+            .limit(50)
+        )
+        for log in recent.scalars().all():
+            recent_violations.setdefault(log.session_id, []).append({
+                "type": log.violation_type,
+                "confidence": log.confidence,
+                "time": log.created_at.isoformat() if log.created_at else None,
+            })
+
+    students = []
+    for session, user in rows:
+        sid = str(session.id)
+        integrity = session.integrity_score if session.integrity_score is not None else 100.0
+        students.append({
+            "session_id": sid,
+            "student_name": user.full_name,
+            "student_email": user.email,
+            "status": session.status,
+            "integrity_score": integrity,
+            "violation_count": violation_counts.get(session.id, 0),
+            "recent_violations": recent_violations.get(session.id, [])[:5],
+            "has_frame": sid in LAST_FRAMES,
+            "started_at": session.started_at.isoformat() if session.started_at else None,
+        })
+
+    students.sort(key=lambda s: s["integrity_score"])
+    active_count = sum(1 for s in students if s["status"] == "active")
+    return {"students": students, "active_count": active_count, "total_count": len(students)}
+
+
 @router.get("/{session_id}/integrity")
 async def get_integrity(session_id: str, db: AsyncSession = Depends(get_db)) -> dict:
     session = await _get_session(session_id, db)
