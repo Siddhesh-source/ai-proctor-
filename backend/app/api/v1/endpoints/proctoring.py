@@ -25,9 +25,9 @@ router = APIRouter(prefix="/proctoring", tags=["proctoring"])
 logger = logging.getLogger(__name__)
 LAST_FRAMES: dict[str, str] = {}
 
-# consecutive multi-person frame counter — fires only after N frames (~30% more lenient)
+# consecutive multi-person frame counter — fires only after N frames (~52% more lenient)
 MULTI_PERSON_FRAMES: dict[str, int] = {}
-MULTI_PERSON_THRESHOLD = 4
+MULTI_PERSON_THRESHOLD = 7
 
 VIOLATION_EXPLANATIONS = {
     "phone_detected": "Mobile device detected in the camera frame.",
