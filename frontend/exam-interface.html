@@ -1034,6 +1034,7 @@
               tab_switch: "Tab switch detected",
               screenshot_attempt: "Screenshot attempt detected",
               screen_share_detected: "Screen sharing detected — stop sharing immediately",
+              speech_cheating: "Cheating speech detected — please maintain silence",
             }[violation] || "Violation detected";
           let toast = document.getElementById("violation-toast");
           if (!toast) {
@@ -1143,6 +1144,8 @@
               ctx2.createMediaStreamSource(stream).connect(analyser);
               analyser.fftSize = 256;
               const data = new Uint8Array(analyser.frequencyBinCount);
+
+              // --- Existing energy check (instant flag, no transcript) ---
               _setInterval(() => {
                 analyser.getByteFrequencyData(data);
                 const voiceBand = Array.from(data.slice(4, 20));
@@ -1157,6 +1160,72 @@
                   })
                   .catch(() => {});
               }, 5000);
+
+              // --- Energy-gated Sarvam STT recording ---
+              const ENERGY_START  = 55;  // start recording above this
+              const ENERGY_STOP   = 30;  // stop recording below this
+              const MAX_CLIP_MS   = 15000; // force-flush after 15s of continuous speech
+              const mimeType      = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+                                      ? "audio/webm;codecs=opus" : "audio/webm";
+
+              let mediaRecorder   = null;
+              let recordedChunks  = [];
+              let recordingStart  = 0;
+              let flushTimer      = null;
+
+              const flushRecording = () => {
+                if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+                mediaRecorder.stop();
+              };
+
+              const startRecording = () => {
+                if (mediaRecorder && mediaRecorder.state === "recording") return;
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(stream, { mimeType });
+                mediaRecorder.ondataavailable = (e) => {
+                  if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+                mediaRecorder.onstop = () => {
+                  if (flushTimer) { _clearTimeout(flushTimer); flushTimer = null; }
+                  const blob = new Blob(recordedChunks, { type: mimeType });
+                  // Discard clips shorter than 1 second (~8KB for opus)
+                  if (blob.size < 8192) return;
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    const b64 = reader.result.split(",")[1];
+                    window.Morpheus.sendAudioStt(id, b64, mimeType)
+                      .then((res) => {
+                        if (res?.violation) {
+                          showViolationToast("speech_cheating");
+                        }
+                      })
+                      .catch(() => {});
+                  };
+                  reader.readAsDataURL(blob);
+                };
+                mediaRecorder.start();
+                recordingStart = _dateNow();
+                // Force-flush after MAX_CLIP_MS to avoid huge payloads
+                flushTimer = _setTimeout(flushRecording, MAX_CLIP_MS);
+              };
+
+              const stopRecording = () => {
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                  mediaRecorder.stop();
+                }
+              };
+
+              // Poll energy every 1s to gate recording start/stop
+              _setInterval(() => {
+                analyser.getByteFrequencyData(data);
+                const voiceBand = Array.from(data.slice(4, 20));
+                const energy = (voiceBand.reduce((a, b) => a + b, 0) / (voiceBand.length * 255)) * 100;
+                if (energy > ENERGY_START) {
+                  startRecording();
+                } else if (energy < ENERGY_STOP) {
+                  stopRecording();
+                }
+              }, 1000);
             })
             .catch(() => {});
 

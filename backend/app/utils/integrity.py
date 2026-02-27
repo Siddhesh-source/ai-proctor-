@@ -11,6 +11,7 @@ WEIGHTS = {
     "multiple_monitors": 0.15,
     "screen_share_detected": 0.40,
     "screenshot_attempt": 0.10,
+    "speech_cheating": 0.35,
 }
 
 
