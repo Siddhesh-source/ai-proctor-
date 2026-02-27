@@ -25,10 +25,11 @@ def get_face_collection():
 def get_face_embedding(user_id: str) -> list[float] | None:
     collection = get_face_collection()
     result = collection.get(ids=[user_id], include=["embeddings"])
-    if not result.get("ids"):
+    ids = result.get("ids") or []
+    if len(ids) == 0:
         return None
-    embeddings = result.get("embeddings") or []
-    if not embeddings:
+    embeddings = result.get("embeddings")
+    if embeddings is None or len(embeddings) == 0:
         return None
     return embeddings[0]
 

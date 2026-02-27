@@ -16,7 +16,7 @@ class QuestionCreate(BaseModel):
 
 class ExamCreate(BaseModel):
     title: str
-    type: Literal["mcq", "subjective", "code"]
+    type: Literal["mcq", "subjective", "code", "mixed"]
     duration_minutes: int
     start_time: datetime
     end_time: datetime

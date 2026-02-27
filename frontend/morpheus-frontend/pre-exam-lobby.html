@@ -469,6 +469,19 @@
           return video;
         };
 
+        const ensureVideoReady = (video) =>
+          new Promise((resolve) => {
+            if (video.readyState >= 2) {
+              resolve();
+              return;
+            }
+            const onReady = () => {
+              video.removeEventListener("loadeddata", onReady);
+              resolve();
+            };
+            video.addEventListener("loadeddata", onReady);
+          });
+
         const unlockStep2 = () => {
           els.step2.setAttribute("aria-disabled", "false");
           els.faceVerify.disabled = false;
@@ -501,7 +514,21 @@
             throw new Error("Camera not started");
           }
 
+          await ensureVideoReady(video);
+          try {
+            await video.play();
+          } catch {
+            // ignore autoplay restrictions
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
           return new Promise((resolve, reject) => {
+            let done = false;
             const faceMesh = new window.FaceMesh({
               locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
             });
@@ -513,23 +540,29 @@
               minTrackingConfidence: 0.6,
             });
 
-            const onResults = (results) => {
+            const finish = (fn) => {
+              if (done) return;
+              done = true;
+              faceMesh.close();
+              fn();
+            };
+
+            faceMesh.onResults((results) => {
               const landmarks = results.multiFaceLandmarks?.[0];
               if (!landmarks) {
-                reject(new Error("No face detected"));
+                finish(() => reject(new Error("No face detected")));
                 return;
               }
               const values = [];
               for (const point of landmarks) {
                 values.push(point.x, point.y, point.z);
               }
-              resolve(values.slice(0, 128));
-            };
+              finish(() => resolve(values.slice(0, 128)));
+            });
 
-            faceMesh.onResults(onResults);
-            faceMesh
-              .send({ image: video })
-              .catch(() => reject(new Error("Face capture failed")));
+            faceMesh.send({ image: canvas }).catch(() => {
+              finish(() => reject(new Error("Face capture failed")));
+            });
           });
         };
 
@@ -540,6 +573,7 @@
               state.stream = stream;
               const video = ensureVideo();
               video.srcObject = stream;
+              video.play().catch(() => null);
               state.cameraOk = true;
               setStatus(els.step1Status, "Passed", "ready");
               setStatus(els.checkCamera, "Ready", "ready");
@@ -567,7 +601,16 @@
           els.faceConfidence.textContent = "Verifying...";
           try {
             const face_embedding = await captureFaceEmbedding();
-            const user = window.Morpheus.getUser();
+            let user = window.Morpheus.getUser();
+            if (!user?.id) {
+              user = await window.Morpheus.getMe();
+              if (user?.id) {
+                window.Morpheus.setUser({ id: user.id, role: user.role, full_name: user.full_name });
+              }
+            }
+            if (!user?.id) {
+              throw new Error("Unable to resolve user identity");
+            }
             const result = await window.Morpheus.faceVerify(user.id, face_embedding);
             if (result?.registered || result?.verified) {
               state.faceVerified = true;
