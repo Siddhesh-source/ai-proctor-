@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exam Result</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --panel: rgba(255, 255, 255, 0.03);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #d7ff45;
+        --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+        --radius: 18px;
+        --radius-lg: 24px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --container: 1120px;
+
+        --badge-success: rgba(81, 255, 167, 0.2);
+        --badge-warning: rgba(255, 214, 64, 0.2);
+        --badge-risk: rgba(255, 120, 120, 0.2);
+
+        --font-heading: "Anton", sans-serif;
+        --font-body: "Proxima Nova", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .title,
+      .panel-title {
+        font-family: var(--font-heading);
+        font-weight: 400;
+      }
+
+      .page {
+        padding: 28px 24px 64px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .title {
+        font-size: 52px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 540px;
+        font-size: 14px;
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: rgba(0, 0, 0, 0.92);
+        border-color: transparent;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-inner {
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .summary {
+        grid-column: span 12;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .metric {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        display: grid;
+        gap: 10px;
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .metric span {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .metric strong {
+        font-size: 36px;
+        letter-spacing: 0.04em;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.82);
+        background: rgba(0, 0, 0, 0.16);
+      }
+
+      .badge.success {
+        background: var(--badge-success);
+        border-color: rgba(81, 255, 167, 0.4);
+      }
+
+      .badge.warning {
+        background: var(--badge-warning);
+        border-color: rgba(255, 214, 64, 0.4);
+      }
+
+      .badge.risk {
+        background: var(--badge-risk);
+        border-color: rgba(255, 120, 120, 0.4);
+      }
+
+      .panel {
+        grid-column: span 12;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .question-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.2);
+        display: grid;
+        gap: 12px;
+      }
+
+      .question-header {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .question-header h3 {
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 14px;
+      }
+
+      .answer-block {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.85);
+        line-height: 1.6;
+      }
+
+      .breakdown {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+      }
+
+      .breakdown-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+      }
+
+      .violation-list {
+        list-style: none;
+        display: grid;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .violation-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border: 1px solid var(--border);
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      @media (max-width: 960px) {
+        .title {
+          font-size: 42px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="container">
+        <header class="header">
+          <div>
+            <div class="title">Result</div>
+            <div class="subtitle">Complete performance report for Database Systems Final.</div>
+          </div>
+          <div>
+            <a class="button" href="student.html">Back to Dashboard</a>
+          </div>
+        </header>
+
+        <section class="card summary">
+          <div class="card-inner">
+            <div class="summary-grid">
+              <div class="metric">
+                <span>Total Score</span>
+                <strong>86 / 100</strong>
+              </div>
+              <div class="metric">
+                <span>Percentage</span>
+                <strong>86%</strong>
+              </div>
+              <div class="metric">
+                <span>Integrity</span>
+                <strong>94%</strong>
+                <span class="badge success">Trusted</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Per Question Review</div>
+              <div class="muted">Your answer, correct answer, and marks awarded.</div>
+            </div>
+          </div>
+          <div class="card-inner" id="question-review"></div>
+        </section>
+
+        <section class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Violation Summary</div>
+              <div class="muted">Proctoring events detected during the session.</div>
+            </div>
+          </div>
+          <div class="card-inner">
+            <ul class="violation-list" id="violation-list"></ul>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      const start = () => {
+        if (!Morpheus.requireAuth()) {
+          return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const session_id = params.get("session_id") || sessionStorage.getItem("morpheus_session_id");
+        const exam_id = params.get("exam_id");
+
+        const els = {
+          questionReview: document.getElementById("question-review"),
+          violationList: document.getElementById("violation-list"),
+          backLink: document.querySelector(".header .button"),
+          title: document.querySelector(".title"),
+        };
+
+        const metrics = Array.from(document.querySelectorAll(".summary .metric"));
+        const totalMetric = metrics.find((metric) =>
+          metric.querySelector("span")?.textContent?.toLowerCase().includes("total score"),
+        );
+        const percentageMetric = metrics.find((metric) =>
+          metric.querySelector("span")?.textContent?.toLowerCase().includes("percentage"),
+        );
+        const integrityMetric = metrics.find((metric) =>
+          metric.querySelector("span")?.textContent?.toLowerCase().includes("integrity"),
+        );
+
+        const formatScore = (value) => {
+          if (value === null || value === undefined) return "—";
+          return value;
+        };
+
+        const escapeHtml = (value) => {
+          return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+        };
+
+        const integrityTone = (score) => {
+          if (score === null || score === undefined) return { label: "Unknown", className: "warning" };
+          if (score > 80) return { label: "Trusted", className: "success" };
+          if (score >= 50) return { label: "Review", className: "warning" };
+          return { label: "Flagged", className: "risk" };
+        };
+
+        const setMetric = (metric, value, suffix = "") => {
+          if (!metric) return;
+          const target = metric.querySelector("strong");
+          if (target) {
+            target.textContent = `${value}${suffix}`;
+          }
+        };
+
+        const formatPercent = (value) => {
+          if (value === null || value === undefined || value === "—") return "—";
+          return `${value}%`;
+        };
+
+        const renderViolationSummary = (summary) => {
+          if (!els.violationList) return;
+          const entries = Object.entries(summary || {});
+          if (!entries.length) {
+            els.violationList.innerHTML = `
+              <li>
+                <span>No violations</span>
+                <strong>0</strong>
+              </li>
+            `;
+            return;
+          }
+          els.violationList.innerHTML = entries
+            .map(
+              ([label, count]) => `
+                <li>
+                  <span>${escapeHtml(label)}</span>
+                  <strong>${escapeHtml(count)}</strong>
+                </li>
+              `,
+            )
+            .join("");
+        };
+
+        const renderQuestionResponses = (responses) => {
+          if (!els.questionReview) return;
+          if (!responses || !responses.length) {
+            els.questionReview.innerHTML = `<div class="muted">No responses submitted.</div>`;
+            return;
+          }
+
+          els.questionReview.innerHTML = responses
+            .map((response, index) => {
+              const marksEarned = response.score ?? 0;
+              const marksTotal = response.marks ?? "—";
+              const marksText = `${formatScore(marksEarned)} / ${formatScore(marksTotal)}`;
+              const badgeClass = marksEarned >= marksTotal ? "success" : "warning";
+              const breakdown = response.breakdown
+                ? `
+                    <div class="breakdown">
+                      ${Object.entries(response.breakdown)
+                        .map(
+                          ([key, value]) =>
+                            `<div class="breakdown-item">${escapeHtml(key)}: ${escapeHtml(value)}</div>`,
+                        )
+                        .join("")}
+                    </div>
+                  `
+                : "";
+              return `
+                <div class="question-card">
+                  <div class="question-header">
+                    <h3>Question ${index + 1}</h3>
+                    <span class="badge ${badgeClass}">${marksText}</span>
+                  </div>
+                  <div class="muted">${escapeHtml(response.question_text || response.question_id || "Question")}</div>
+                  <div>
+                    <div class="panel-title" style="margin-bottom: 6px;">Student Answer</div>
+                    <div class="answer-block">${escapeHtml(response.answer ?? "—")}</div>
+                  </div>
+                  ${breakdown}
+                </div>
+              `;
+            })
+            .join("");
+        };
+
+        const renderExamResultsTable = (rows) => {
+          if (!els.questionReview) return;
+          if (!rows || !rows.length) {
+            els.questionReview.innerHTML = `<div class="muted">No results available.</div>`;
+            return;
+          }
+
+          const tableRows = rows
+            .map((row) => {
+              const integrity = Number(row.integrity_score);
+              const color =
+                Number.isFinite(integrity) && integrity > 80
+                  ? "#00d896"
+                  : Number.isFinite(integrity) && integrity >= 50
+                    ? "#ffd166"
+                    : "#ff7a7a";
+              return `
+                <tr>
+                  <td>${escapeHtml(row.student_name)}</td>
+                  <td>${escapeHtml(formatScore(row.total_score))}</td>
+                  <td style="color:${color};">${escapeHtml(formatScore(row.integrity_score))}</td>
+                  <td>${escapeHtml(row.status)}</td>
+                </tr>
+              `;
+            })
+            .join("");
+
+          els.questionReview.innerHTML = `
+            <div style="overflow:auto;">
+              <table class="table" role="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Student</th>
+                    <th scope="col">Total Score</th>
+                    <th scope="col">Integrity</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+            </div>
+          `;
+        };
+
+        const setBackLink = async () => {
+          let user = Morpheus.getUser();
+          if (!user) {
+            try {
+              user = await Morpheus.getMe();
+            } catch (error) {
+              user = null;
+            }
+          }
+          if (!els.backLink) return;
+          if (user?.role === "professor") {
+            els.backLink.href = "professor.html";
+          } else {
+            els.backLink.href = "student.html";
+          }
+          els.backLink.addEventListener("click", (event) => {
+            event.preventDefault();
+            window.location.href = els.backLink.href;
+          });
+        };
+
+        const loadSessionResult = async (id) => {
+          const result = await Morpheus.getResult(id);
+          const totalScore = result.total_score ?? "—";
+          const totalMarks = (result.responses || []).reduce(
+            (sum, response) => sum + (Number(response.marks) || 0),
+            0,
+          );
+          const percentage = totalMarks ? Math.round((Number(totalScore) / totalMarks) * 100) : "—";
+          const integrity = result.integrity_score ?? "—";
+          const tone = integrityTone(Number(result.integrity_score));
+
+          setMetric(totalMetric, `${formatScore(totalScore)} / ${formatScore(totalMarks || "—")}`);
+          setMetric(percentageMetric, formatPercent(percentage));
+          setMetric(integrityMetric, formatPercent(formatScore(integrity)));
+          if (integrityMetric) {
+            const badge = integrityMetric.querySelector(".badge");
+            if (badge) {
+              badge.className = `badge ${tone.className}`;
+              badge.textContent = tone.label;
+            }
+          }
+
+          renderViolationSummary(result.violation_summary);
+          renderQuestionResponses(result.responses || []);
+        };
+
+        const loadExamResults = async (id) => {
+          const rows = await Morpheus.getExamResults(id);
+          if (els.title) {
+            els.title.textContent = "Results Overview";
+          }
+          renderExamResultsTable(rows || []);
+          if (els.violationList) {
+            els.violationList.innerHTML = "";
+          }
+        };
+
+        const init = async () => {
+          await setBackLink();
+          if (session_id) {
+            await loadSessionResult(session_id);
+            return;
+          }
+          if (exam_id) {
+            await loadExamResults(exam_id);
+            return;
+          }
+          if (els.questionReview) {
+            els.questionReview.innerHTML = `<div class="muted">No result selected.</div>`;
+          }
+        };
+
+        init();
+      };
+
+      start();
+    </script>
+  </body>
+</html>

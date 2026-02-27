@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --bg-elev: rgba(255, 255, 255, 0.04);
+        --text: rgba(255, 255, 255, 0.94);
+        --muted: rgba(255, 255, 255, 0.64);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #4e8fe6;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+        --radius: 16px;
+        --radius-lg: 22px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --container: 1040px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Proxima Nova", sans-serif;
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 3px 3px;
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 28px 24px;
+        display: grid;
+        place-items: center;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .logo {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        font-weight: 700;
+        text-transform: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo a {
+        color: inherit;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo img {
+        width: 26px;
+        height: 26px;
+        object-fit: contain;
+        display: block;
+      }
+
+      .card-logo {
+        display: flex;
+        justify-content: center;
+      }
+
+      .backlink {
+        color: var(--muted);
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        border: 1px solid var(--border);
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.02);
+        transition: border-color 220ms var(--ease), transform 220ms var(--ease);
+      }
+
+      .backlink:hover {
+        border-color: var(--border-strong);
+        transform: translateY(-1px);
+        color: var(--text);
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.75));
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        max-width: 420px;
+        width: 100%;
+        justify-self: center;
+      }
+
+      .card-inner {
+        padding: 28px 28px 24px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .heading {
+        text-align: center;
+      }
+
+      .title {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-weight: 600;
+        font-size: 28px;
+        letter-spacing: 0.01em;
+        text-transform: none;
+        line-height: 1;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        line-height: 1.7;
+        font-size: 14px;
+        margin-top: 20px;
+      }
+
+      form {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      label {
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      input {
+        width: 100%;
+        padding: 13px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.35);
+        color: var(--text);
+        outline: none;
+        transition: border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      input:focus {
+        border-color: rgba(78, 143, 230, 0.7);
+        background: rgba(0, 0, 0, 0.45);
+      }
+
+      input::placeholder {
+        color: rgba(255, 255, 255, 0.38);
+      }
+
+      .error {
+        color: rgba(255, 120, 120, 0.92);
+        font-size: 12px;
+        line-height: 1.4;
+        min-height: 16px;
+      }
+
+      .form-error {
+        border: 1px solid rgba(255, 120, 120, 0.35);
+        background: rgba(255, 120, 120, 0.08);
+        color: rgba(255, 210, 210, 0.96);
+        padding: 12px 12px;
+        border-radius: 14px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .form-error[hidden] {
+        display: none;
+      }
+
+      .actions {
+        display: grid;
+        gap: 12px;
+        text-align: center;
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-size: 13px;
+        text-transform: none;
+        letter-spacing: 0;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: transparent;
+        width: 100%;
+      }
+
+      .button.primary:disabled {
+        opacity: 0.75;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .hint a {
+        color: var(--text);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+      }
+
+      .hint a:hover {
+        border-bottom-color: rgba(78, 143, 230, 0.7);
+      }
+
+      .forgot {
+        color: rgba(120, 180, 255, 0.9);
+        text-decoration: none;
+        font-size: 13px;
+      }
+
+      .forgot:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 720px) {
+        .card-inner {
+          padding: 22px;
+        }
+
+        .title {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="container">
+        <div class="card">
+          <div class="card-inner">
+            <div class="card-logo">
+              <div class="logo">
+                <a href="index.html">
+                  <img src="logo.png" alt="Quatarly logo" />
+                  <span>Quatarly</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="heading">
+              <div class="title">Welcome Back</div>
+              <div class="subtitle">Sign in to your account to continue.</div>
+            </div>
+
+            <div id="form-error" class="form-error" hidden></div>
+
+            <form id="login-form" novalidate>
+              <div class="field">
+                <label for="email">Email</label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autocomplete="username"
+                  placeholder="Enter your email"
+                  required
+                />
+                <div id="email-error" class="error"></div>
+              </div>
+
+              <div class="field">
+                <label for="password">Password</label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="Enter your password"
+                  required
+                />
+                <div id="password-error" class="error"></div>
+              </div>
+
+              <div class="actions">
+                <button id="submit" class="button primary" type="submit">Sign In</button>
+                <a class="forgot" href="#">Forgot your password?</a>
+                <div class="hint">Don't have an account? <a href="register.html">Sign up</a></div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      const ROLE_REDIRECTS = {
+        student: "student.html",
+        professor: "professor.html",
+      };
+
+      const form = document.getElementById("login-form");
+      const email = document.getElementById("email");
+      const password = document.getElementById("password");
+      const submit = document.getElementById("submit");
+
+      const emailError = document.getElementById("email-error");
+      const passwordError = document.getElementById("password-error");
+      const formError = document.getElementById("form-error");
+
+      const setText = (el, value) => {
+        el.textContent = value || "";
+      };
+
+      const setFormError = (message) => {
+        if (!message) {
+          formError.hidden = true;
+          formError.textContent = "";
+          return;
+        }
+        formError.hidden = false;
+        formError.textContent = message;
+      };
+
+      const validate = () => {
+        let ok = true;
+        setText(emailError, "");
+        setText(passwordError, "");
+        setFormError("");
+
+        const emailValue = email.value.trim();
+        const passwordValue = password.value;
+
+        if (!emailValue) {
+          setText(emailError, "Email is required.");
+          ok = false;
+        } else if (!/^\S+@\S+\.\S+$/.test(emailValue)) {
+          setText(emailError, "Enter a valid email address.");
+          ok = false;
+        }
+
+        if (!passwordValue) {
+          setText(passwordError, "Password is required.");
+          ok = false;
+        }
+
+        return ok;
+      };
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!validate()) return;
+
+        submit.disabled = true;
+        submit.textContent = "Signing in...";
+        setFormError("");
+
+        try {
+          const result = await window.Morpheus.login(email.value.trim(), password.value);
+          const role = result?.role;
+          const redirectUrl = ROLE_REDIRECTS[role];
+
+          if (!redirectUrl) {
+            setFormError("Login succeeded, but no redirect was configured for your role.");
+            return;
+          }
+
+          window.location.href = redirectUrl;
+        } catch (error) {
+          setFormError(error?.message || "Login failed. Please try again.");
+        } finally {
+          submit.disabled = false;
+          submit.textContent = "Sign In";
+        }
+      });
+    </script>
+  </body>
+</html>

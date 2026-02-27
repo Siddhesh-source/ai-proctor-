@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Faculty Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.3);
+        --accent: #00c896;
+        --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+        --radius: 20px;
+        --radius-lg: 28px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --container: 1200px;
+        --font-heading: "Anton", sans-serif;
+        --font-body: "Proxima Nova", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .title,
+      .metric-value,
+      .panel-title {
+        font-family: var(--font-heading);
+        font-weight: 400;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 3px 3px;
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+      }
+
+      .page {
+        min-height: 100vh;
+        padding: 28px 24px 64px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+      }
+
+      .hero-head {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding-top: 6px;
+        position: relative;
+      }
+
+      .header-right {
+        position: absolute;
+        top: 0;
+        right: -100px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .profile-trigger-wrap {
+        position: relative;
+      }
+
+      .org-tab {
+        width: calc(100% + 100px);
+        margin-left: -50px;
+        border-radius: 0;
+        padding: 6px 0;
+        background: transparent;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .org-brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .org-brand img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+
+      .org-title {
+        font-size: 16px;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        font-weight: 700;
+      }
+
+      .org-subtitle {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .org-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-right: 60px;
+      }
+
+      .org-status,
+      .org-chip {
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+      }
+
+      .org-status {
+        background: rgba(0, 214, 255, 0.14);
+        color: #00d8ff;
+      }
+
+      .org-chip {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .org-info {
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 6px;
+      }
+
+      .org-info-row {
+        display: flex;
+        gap: 18px;
+        flex-wrap: wrap;
+        align-items: center;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+      }
+
+      .org-info-name {
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .org-info-status {
+        color: #00d896;
+      }
+
+      .org-info-detail {
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .profile-trigger {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        padding: 2px;
+        background: linear-gradient(160deg, rgba(0, 200, 150, 0.7), rgba(0, 150, 200, 0.9));
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color 220ms var(--ease), transform 220ms var(--ease);
+      }
+
+      .profile-trigger img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .profile-trigger:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+      }
+
+      .profile-popup {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        width: 240px;
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 18px 44px rgba(15, 15, 15, 0.25);
+        color: #1a1a1a;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        opacity: 0;
+        transform: translateY(-6px);
+        pointer-events: none;
+        transition: opacity 220ms var(--ease), transform 220ms var(--ease);
+        z-index: 30;
+      }
+
+      .profile-popup.is-open {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+
+      .profile-popup-header {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 48px 1fr;
+        align-items: center;
+      }
+
+      .profile-popup-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .profile-popup-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .profile-popup-name {
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.04em;
+      }
+
+      .profile-popup-email {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.54);
+      }
+
+      .profile-options {
+        display: grid;
+        gap: 6px;
+      }
+
+      .profile-option {
+        border: 0;
+        background: transparent;
+        padding: 10px 12px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        text-align: left;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        color: #111;
+        transition: background 200ms ease;
+      }
+
+      .profile-option:hover {
+        background: rgba(0, 0, 0, 0.04);
+      }
+
+      .profile-option-icon {
+        width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 28px;
+        align-items: flex-start;
+      }
+
+      .left {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .right {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .quick-card {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        background: rgba(18, 18, 18, 0.78);
+        box-shadow: var(--shadow);
+      }
+
+      .quick-card .card-inner {
+        padding: 22px;
+      }
+
+      .quick-card .card-title {
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .quick-card .quick-note {
+        margin-top: 10px;
+        line-height: 1.6;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .nav {
+        position: sticky;
+        top: 16px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(10, 10, 12, 0.55);
+        backdrop-filter: blur(14px);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 12px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .logo {
+        font-family: "Anton", sans-serif;
+        font-size: 28px;
+        letter-spacing: 0.2em;
+      }
+
+      .logo a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 18px;
+        list-style: none;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .nav-links a {
+        color: var(--muted);
+        text-decoration: none;
+        transition: color 200ms var(--ease);
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: rgba(0, 0, 0, 0.92);
+        border-color: transparent;
+      }
+
+      .header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding-top: 8px;
+      }
+
+      .title {
+        font-weight: 400;
+        font-size: 56px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 520px;
+        font-size: 14px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.03);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-inner {
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .metric {
+        grid-column: span 4;
+        min-height: 120px;
+      }
+
+      .metric-label {
+        color: rgba(255, 255, 255, 0.78);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+      }
+
+      .metric-value {
+        font-weight: 400;
+        font-size: 54px;
+        letter-spacing: 0.04em;
+        line-height: 1;
+      }
+
+      .metric-sub {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .panel {
+        grid-column: span 12;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .quick-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .list-controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .chip-group {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.12);
+      }
+
+      .chip {
+        border: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.72);
+        padding: 10px 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        cursor: pointer;
+        transition: background 220ms var(--ease), color 220ms var(--ease);
+      }
+
+      .chip[aria-pressed="true"] {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .control-input,
+      .control-select {
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.14);
+        color: rgba(255, 255, 255, 0.9);
+        padding: 10px 12px;
+        font-size: 12px;
+        outline: none;
+        transition: border-color 220ms var(--ease), background 220ms var(--ease);
+        min-height: 36px;
+      }
+
+      .control-input:focus,
+      .control-select:focus {
+        border-color: var(--border-strong);
+        background: rgba(0, 0, 0, 0.22);
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table th,
+      .table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .table th {
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+      }
+
+      .table td {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .table tbody tr {
+        cursor: pointer;
+        transition: background 180ms var(--ease);
+      }
+
+      .table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .button.small {
+        padding: 9px 12px;
+        letter-spacing: 0.08em;
+      }
+
+      .button.danger {
+        border-color: rgba(255, 120, 120, 0.35);
+        background: rgba(255, 120, 120, 0.12);
+      }
+
+      .button:disabled {
+        opacity: 0.62;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.82);
+        background: rgba(0, 0, 0, 0.16);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .badge.upcoming {
+        border-color: rgba(0, 214, 255, 0.35);
+        background: var(--badge-upcoming);
+      }
+
+      .badge.upcoming .dot {
+        background: rgba(0, 214, 255, 0.95);
+        box-shadow: 0 0 0 4px rgba(0, 214, 255, 0.14);
+      }
+
+      .badge.live {
+        border-color: rgba(215, 255, 69, 0.35);
+        background: var(--badge-live);
+      }
+
+      .badge.live .dot {
+        background: rgba(215, 255, 69, 0.95);
+        box-shadow: 0 0 0 4px rgba(215, 255, 69, 0.14);
+      }
+
+      .badge.ended {
+        border-color: rgba(255, 120, 120, 0.35);
+        background: var(--badge-ended);
+      }
+
+      .badge.ended .dot {
+        background: rgba(255, 120, 120, 0.95);
+        box-shadow: 0 0 0 4px rgba(255, 120, 120, 0.14);
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .is-hidden {
+        display: none;
+      }
+
+      .selected-exam {
+        font-size: 18px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .results-panel {
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+
+      @media (max-width: 960px) {
+        .metric {
+          grid-column: span 12;
+        }
+
+        .title {
+          font-size: 44px;
+        }
+
+        .table th,
+        .table td {
+          padding: 12px 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="container">
+        <header class="hero-head" id="home">
+          <div class="org-tab">
+            <div class="org-brand">
+              <img src="vit.png" alt="Org logo" />
+              <div>
+                <div class="org-title">Vishwakarma Institute of Technology</div>
+                <div class="org-subtitle">Pune</div>
+              </div>
+            </div>
+            <div class="org-actions">
+              <span class="org-status">Verified</span>
+              <span class="org-chip">FACULTY</span>
+            </div>
+          </div>
+          <div class="org-info">
+            <div class="org-info-row">
+              <span class="org-info-name">Himanshu Deshmukh</span>
+              <span class="org-info-status">Active</span>
+              <span class="org-info-detail">Registration No: 12414955</span>
+              <span class="org-info-detail">BTech - Computer Science and Engineering (AI &amp; ML)</span>
+            </div>
+          </div>
+          <div>
+            <div class="title">Dashboard</div>
+            <div class="subtitle">
+              Overview of your exams, student participation, and live sessions. Use the profile menu to access your
+              account settings and open quick actions whenever needed.
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="profile-trigger-wrap">
+              <button
+                class="profile-trigger"
+                type="button"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="profile-popup"
+              >
+                <img src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
+              </button>
+              <div class="profile-popup" id="profile-popup" role="menu" aria-hidden="true">
+                <div class="profile-popup-header">
+                  <div class="profile-popup-avatar">
+                    <img src="https://i.pravatar.cc/150?img=32" alt="Faculty avatar" />
+                  </div>
+                  <div>
+                    <div class="profile-popup-name">Himanshu Deshmukh</div>
+                    <div class="profile-popup-email">himanshu.deshmukh24@vit.edu</div>
+                  </div>
+                </div>
+                <div class="profile-options">
+                  <button class="profile-option" type="button" data-action="profile">
+                    <span class="profile-option-icon">👤</span> User Profile
+                  </button>
+                  <button class="profile-option" type="button" data-action="password">
+                    <span class="profile-option-icon">🔒</span> Change Password
+                  </button>
+                  <button class="profile-option" type="button" data-action="id">
+                    <span class="profile-option-icon">💳</span> Virtual ID Card
+                  </button>
+                  <button class="profile-option" type="button" data-action="logout">
+                    <span class="profile-option-icon">⏻</span> Log Out
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div class="shell">
+          <div class="left">
+            <section class="grid" aria-label="Summary metrics">
+              <div class="card metric">
+                <div class="card-inner">
+                  <div class="metric-label">Total Exams Created</div>
+                  <div id="metric-exams" class="metric-value">—</div>
+                  <div class="metric-sub">All-time exam count in your account.</div>
+                </div>
+              </div>
+
+              <div class="card metric">
+                <div class="card-inner">
+                  <div class="metric-label">Total Students Registered</div>
+                  <div id="metric-students" class="metric-value">—</div>
+                  <div class="metric-sub">Unique students who attempted your exams.</div>
+                </div>
+              </div>
+
+              <div class="card metric">
+                <div class="card-inner">
+                  <div class="metric-label">Active Exams Right Now</div>
+                  <div id="metric-live" class="metric-value">—</div>
+                  <div class="metric-sub">Live exams currently running.</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="card panel" id="exams" aria-label="All exams">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">All Exams</div>
+                  <div class="muted">Upcoming, live, and ended exams with status.</div>
+                </div>
+                <div class="list-controls" aria-label="Exam list controls">
+                  <div class="chip-group" role="group" aria-label="Filter by status">
+                    <button class="chip" type="button" data-filter="all" aria-pressed="true">All</button>
+                    <button class="chip" type="button" data-filter="active" aria-pressed="false">Active</button>
+                    <button class="chip" type="button" data-filter="upcoming" aria-pressed="false">Upcoming</button>
+                    <button class="chip" type="button" data-filter="ended" aria-pressed="false">Ended</button>
+                  </div>
+                  <input id="exam-search" class="control-input" type="search" placeholder="Search by title" />
+                  <select id="exam-sort" class="control-select" aria-label="Sort exams">
+                    <option value="date">Sort: Date</option>
+                    <option value="students">Sort: Student count</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="overflow:auto;">
+                <table class="table" role="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Exam</th>
+                      <th scope="col">Schedule</th>
+                      <th scope="col">Students</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" style="text-align:right;">Open</th>
+                    </tr>
+                  </thead>
+                  <tbody id="exams-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <div class="right">
+            <section class="quick-card" aria-label="Quick actions">
+              <div class="card-inner">
+                <div class="card-title">Quick actions</div>
+                <div class="controls">
+                  <a class="button primary" href="create-exam.html">Create Exam</a>
+                  <a class="button" href="login.html">Logout</a>
+                </div>
+                <p class="quick-note">Launch a new exam or log out as soon as you finish the current session.</p>
+              </div>
+            </section>
+
+            <section class="card panel" id="exam-detail" aria-label="Exam actions">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">Exam Actions</div>
+                  <div class="muted">Select an exam to review results or open live monitoring.</div>
+                </div>
+              </div>
+              <div class="card-inner stack">
+                <div id="exam-detail-placeholder" class="muted">Click any exam row to load actions.</div>
+                <div id="exam-actions" class="stack is-hidden">
+                  <div id="selected-exam-title" class="selected-exam"></div>
+                  <div class="row-actions">
+                    <button id="check-results" class="button primary" type="button">Check Results</button>
+                    <a id="live-monitor" class="button" href="live-monitor.html">Live Monitoring</a>
+                  </div>
+                </div>
+                <div id="results-panel" class="results-panel is-hidden">
+                  <div class="panel-title" style="margin-bottom: 8px;">Results</div>
+                  <div class="muted" style="margin-bottom: 12px;">Student performance for the selected exam.</div>
+                  <div style="overflow:auto;">
+                    <table class="table" role="table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Student</th>
+                          <th scope="col">Marks</th>
+                          <th scope="col">Submitted</th>
+                        </tr>
+                      </thead>
+                      <tbody id="results-body"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      const start = () => {
+        if (!Morpheus.requireAuth("professor")) {
+          return;
+        }
+
+        const els = {
+          metricExams: document.getElementById("metric-exams"),
+          metricStudents: document.getElementById("metric-students"),
+          metricLive: document.getElementById("metric-live"),
+          tbody: document.getElementById("exams-body"),
+          search: document.getElementById("exam-search"),
+          sort: document.getElementById("exam-sort"),
+          filterButtons: Array.from(document.querySelectorAll("[data-filter]")),
+          title: document.querySelector(".title"),
+          profileName: document.querySelector(".profile-popup-name"),
+          profileEmail: document.querySelector(".profile-popup-email"),
+          orgName: document.querySelector(".org-info-name"),
+          logoutLink: document.querySelector('a[href="login.html"]'),
+          logoutOption: document.querySelector("[data-action=""logout""]"),
+        };
+
+        const state = {
+          exams: [],
+          filter: "all",
+          search: "",
+          sort: "date",
+        };
+
+        const statusLabel = {
+          upcoming: "Upcoming",
+          live: "Live",
+          ended: "Ended",
+        };
+
+        const escapeHtml = (str) => {
+          return String(str)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+        };
+
+        const parseDate = (value) => {
+          if (!value) return NaN;
+          if (typeof value === "string") {
+            const normalized = value.includes("T") ? value : value.replace(" ", "T");
+            const t = new Date(normalized).getTime();
+            if (Number.isFinite(t)) return t;
+          }
+          const t = new Date(value).getTime();
+          return Number.isFinite(t) ? t : NaN;
+        };
+
+        const formatDate = (value) => {
+          const parsed = parseDate(value);
+          if (!Number.isFinite(parsed)) return "—";
+          return new Date(parsed).toLocaleString();
+        };
+
+        const resolveStatus = (exam) => {
+          const start = parseDate(exam.start_time || exam.startsAt);
+          const end = parseDate(exam.end_time || exam.endsAt);
+          const now = Date.now();
+          if (Number.isFinite(start) && now < start) return "upcoming";
+          if (Number.isFinite(end) && now > end) return "ended";
+          return "live";
+        };
+
+        const normalizeExam = (exam, studentsExamined) => {
+          return {
+            id: exam.id,
+            title: exam.title,
+            type: exam.type,
+            startsAt: exam.start_time || exam.startsAt,
+            endsAt: exam.end_time || exam.endsAt,
+            studentsExamined: studentsExamined ?? 0,
+            status: resolveStatus(exam),
+          };
+        };
+
+        const computeTotals = (exams) => {
+          const totalExams = exams.length;
+          const totalStudents = exams.reduce((sum, ex) => sum + (ex.studentsExamined || 0), 0);
+          const liveCount = exams.filter((ex) => ex.status === "live").length;
+          return { totalExams, totalStudents, liveCount };
+        };
+
+        const renderBadge = (status) => {
+          const safe = statusLabel[status] ? status : "upcoming";
+          return `
+            <span class="badge ${safe}">
+              <span class="dot" aria-hidden="true"></span>
+              ${statusLabel[safe]}
+            </span>
+          `;
+        };
+
+        const matchesFilter = (exam) => {
+          if (state.filter === "all") return true;
+          if (state.filter === "active") return exam.status === "live";
+          return exam.status === state.filter;
+        };
+
+        const matchesSearch = (exam) => {
+          const q = (state.search || "").trim().toLowerCase();
+          if (!q) return true;
+          return (exam.title || "").toLowerCase().includes(q);
+        };
+
+        const sortExams = (a, b) => {
+          if (state.sort === "students") {
+            return (b.studentsExamined || 0) - (a.studentsExamined || 0);
+          }
+          const aStart = parseDate(a.startsAt);
+          const bStart = parseDate(b.startsAt);
+          if (!Number.isFinite(aStart) && !Number.isFinite(bStart)) return 0;
+          if (!Number.isFinite(aStart)) return 1;
+          if (!Number.isFinite(bStart)) return -1;
+          return bStart - aStart;
+        };
+
+        const computeView = () => {
+          return [...state.exams].filter(matchesFilter).filter(matchesSearch).sort(sortExams);
+        };
+
+        const renderRow = (exam) => {
+          return `
+            <tr>
+              <td>
+                <div style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: rgba(255,255,255,0.78);">${escapeHtml(exam.type || "exam")}</div>
+                <div style="margin-top: 6px; font-size: 14px;">${escapeHtml(exam.title)}</div>
+              </td>
+              <td>
+                <div class="muted">Start: ${escapeHtml(formatDate(exam.startsAt))}</div>
+                <div class="muted" style="margin-top: 6px;">End: ${escapeHtml(formatDate(exam.endsAt))}</div>
+              </td>
+              <td>${exam.studentsExamined ?? 0}</td>
+              <td>${renderBadge(exam.status)}</td>
+              <td style="text-align:right;">
+                <div class="row-actions">
+                  <button class="button small" type="button" data-action="results" data-id="${escapeHtml(exam.id)}">View Results</button>
+                  <button class="button small" type="button" data-action="monitor" data-id="${escapeHtml(exam.id)}">Monitor Live</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        };
+
+        const renderTable = () => {
+          const view = computeView();
+          if (!view.length) {
+            els.tbody.innerHTML = `
+              <tr>
+                <td colspan="5" class="muted">No exams found.</td>
+              </tr>
+            `;
+            return;
+          }
+          els.tbody.innerHTML = view.map(renderRow).join("");
+        };
+
+        const renderMetrics = () => {
+          const { totalExams, totalStudents, liveCount } = computeTotals(state.exams);
+          els.metricExams.textContent = totalExams;
+          els.metricStudents.textContent = totalStudents;
+          els.metricLive.textContent = liveCount;
+        };
+
+        const setFilter = (value) => {
+          state.filter = value;
+          els.filterButtons.forEach((btn) => {
+            const pressed = btn.getAttribute("data-filter") === value;
+            btn.setAttribute("aria-pressed", pressed ? "true" : "false");
+          });
+          renderTable();
+        };
+
+        const loadExams = async () => {
+          let exams = [];
+          try {
+            exams = await Morpheus.getProfessorExams();
+          } catch (error) {
+            exams = [];
+          }
+
+          const enriched = await Promise.all(
+            (exams || []).map(async (exam) => {
+              let results = [];
+              try {
+                results = await Morpheus.getExamResults(exam.id);
+              } catch (error) {
+                results = [];
+              }
+              return normalizeExam(exam, results.length);
+            }),
+          );
+
+          state.exams = enriched;
+          renderMetrics();
+          renderTable();
+        };
+
+        const init = async () => {
+          let user = Morpheus.getUser();
+          if (!user) {
+            try {
+              user = await Morpheus.getMe();
+            } catch (error) {
+              user = null;
+            }
+          }
+          if (user?.full_name) {
+            if (els.title) {
+              els.title.textContent = `${user.full_name} Dashboard`;
+            }
+            if (els.orgName) {
+              els.orgName.textContent = user.full_name;
+            }
+            if (els.profileName) {
+              els.profileName.textContent = user.full_name;
+            }
+          }
+          if (user?.email && els.profileEmail) {
+            els.profileEmail.textContent = user.email;
+          }
+
+          const logout = (event) => {
+            if (event) {
+              event.preventDefault();
+            }
+            Morpheus.clearToken();
+            window.location.href = "login.html";
+          };
+
+          if (els.logoutLink) {
+            els.logoutLink.addEventListener("click", logout);
+          }
+          if (els.logoutOption) {
+            els.logoutOption.addEventListener("click", logout);
+          }
+
+          renderMetrics();
+          renderTable();
+
+          els.filterButtons.forEach((btn) => {
+            btn.addEventListener("click", () => setFilter(btn.getAttribute("data-filter")));
+          });
+
+          els.search.addEventListener("input", () => {
+            state.search = els.search.value || "";
+            renderTable();
+          });
+
+          els.sort.addEventListener("change", () => {
+            state.sort = els.sort.value || "date";
+            renderTable();
+          });
+
+          els.tbody.addEventListener("click", (e) => {
+            const btn = e.target.closest("button");
+            if (!btn) return;
+            const action = btn.getAttribute("data-action");
+            const id = btn.getAttribute("data-id");
+            if (!action || !id) return;
+            if (action === "results") {
+              window.location.href = `result.html?exam_id=${encodeURIComponent(id)}`;
+              return;
+            }
+            if (action === "monitor") {
+              window.location.href = `live-monitor.html?exam_id=${encodeURIComponent(id)}`;
+            }
+          });
+
+          await loadExams();
+        };
+
+        const escKey = (e) => e.key === "Escape" || e.key === "Esc";
+
+        const profileTrigger = document.querySelector(".profile-trigger");
+        const profilePopup = document.getElementById("profile-popup");
+
+        const closePopup = () => {
+          profilePopup.classList.remove("is-open");
+          profilePopup.setAttribute("aria-hidden", "true");
+          profileTrigger.setAttribute("aria-expanded", "false");
+        };
+
+        const openPopup = () => {
+          profilePopup.classList.add("is-open");
+          profilePopup.setAttribute("aria-hidden", "false");
+          profileTrigger.setAttribute("aria-expanded", "true");
+        };
+
+        const togglePopup = () => {
+          if (profilePopup.classList.contains("is-open")) {
+            closePopup();
+            return;
+          }
+          openPopup();
+        };
+
+        profileTrigger.addEventListener("click", (e) => {
+          e.stopPropagation();
+          togglePopup();
+        });
+
+        document.addEventListener("click", () => {
+          if (profilePopup.classList.contains("is-open")) {
+            closePopup();
+          }
+        });
+
+        document.addEventListener("keyup", (e) => {
+          if (escKey(e) && profilePopup.classList.contains("is-open")) {
+            closePopup();
+            profileTrigger.focus();
+          }
+        });
+
+        init();
+      };
+
+      start();
+    </script>
+  </body>
+</html>
