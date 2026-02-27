@@ -57,12 +57,17 @@ async def get_session_results(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
+    logger.debug("Fetching session results", extra={"session_id": session_id, "user_id": str(current_user.id)})
     try:
         session_uuid = uuid.UUID(session_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid session_id") from exc
     session_result = await db.execute(select(Session).where(Session.id == session_uuid))
     session = session_result.scalar_one_or_none()
+    logger.debug(
+        "Session lookup complete",
+        extra={"session_id": session_id, "found": bool(session)},
+    )
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     if current_user.role == "student" and session.student_id != current_user.id:
@@ -70,6 +75,10 @@ async def get_session_results(
 
     result_row = await db.execute(select(Result).where(Result.session_id == session.id))
     result = result_row.scalar_one_or_none()
+    logger.debug(
+        "Result lookup complete",
+        extra={"session_id": session_id, "has_result": bool(result)},
+    )
 
     # If session is completed but no Result row exists, grading failed silently — run it now
     if not result and session.status == "completed":
@@ -79,6 +88,8 @@ async def get_session_results(
             result = result_row.scalar_one_or_none()
         except Exception:
             logger.exception("On-demand grading failed for session %s", session_id)
+            await db.rollback()
+            logger.debug("Rolled back failed grading transaction", extra={"session_id": session_id})
 
     violation_counts_result = await db.execute(
         select(ProctoringLog.violation_type, func.count(ProctoringLog.id))
@@ -88,6 +99,10 @@ async def get_session_results(
     violation_summary = {
         row[0]: row[1] for row in violation_counts_result.all()
     }
+    logger.debug(
+        "Violation summary computed",
+        extra={"session_id": session_id, "violation_types": list(violation_summary.keys())},
+    )
 
     exam_result = await db.execute(select(Exam).where(Exam.id == session.exam_id))
     exam = exam_result.scalar_one_or_none()

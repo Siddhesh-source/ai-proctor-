@@ -229,6 +229,10 @@ async def get_exam_questions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[QuestionResponse]:
+    logger.debug(
+        "Fetching exam questions",
+        extra={"exam_id": exam_id, "user_id": str(current_user.id)},
+    )
     _require_role(current_user, "student")
     try:
         exam_uuid = uuid.UUID(exam_id)
@@ -246,6 +250,10 @@ async def get_exam_questions(
     session = session_result.scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Active session required")
+    logger.debug(
+        "Active session verified for exam questions",
+        extra={"exam_id": exam_id, "session_id": str(session.id)},
+    )
     exam_result = await db.execute(select(Exam).where(Exam.id == exam_uuid))
     exam = exam_result.scalar_one_or_none()
     if not exam:
@@ -254,6 +262,10 @@ async def get_exam_questions(
         select(Question).where(Question.exam_id == exam_uuid).order_by(Question.order_index.asc())
     )
     questions = question_result.scalars().all()
+    logger.debug(
+        "Questions fetched",
+        extra={"exam_id": exam_id, "question_count": len(questions)},
+    )
     if exam.randomize_questions:
         random.shuffle(questions)
     return [

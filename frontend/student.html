@@ -505,10 +505,10 @@
         <header class="hero-head" id="home">
           <div class="org-tab">
             <div class="org-brand">
-              <img src="vit.png" alt="Org logo" />
+              <img src="logo.png" alt="Org logo" />
               <div>
-                <div class="org-title">Vishwakarma Institute of Technology</div>
-                <div class="org-subtitle">Pune</div>
+                <div class="org-title">Quatarly</div>
+                <div class="org-subtitle">Org</div>
               </div>
             </div>
             <div class="org-actions">
@@ -543,7 +543,7 @@
                 aria-controls="profile-popup"
               >
                 <span class="avatar">
-                  <img class="avatar-image" src="https://i.pravatar.cc/150?img=12" alt="Student profile" />
+                  <img class="avatar-image" id="student-avatar" alt="Student profile" />
                   <span class="avatar-fallback" id="student-initials">--</span>
                 </span>
               </button>
@@ -551,7 +551,7 @@
                 <div class="profile-popup-header">
                   <div class="profile-popup-avatar">
                     <span class="avatar">
-                      <img class="avatar-image" src="https://i.pravatar.cc/150?img=12" alt="Student avatar" />
+                      <img class="avatar-image" id="student-avatar-popup" alt="Student avatar" />
                       <span class="avatar-fallback" id="student-initials-popup">--</span>
                     </span>
                   </div>
@@ -669,6 +669,12 @@
           return `${first}${last}`.toUpperCase() || "--";
         };
 
+        const avatarUrlFor = (value) => {
+          const safe = (value || "User").trim() || "User";
+          const encoded = encodeURIComponent(safe);
+          return `https://ui-avatars.com/api/?name=${encoded}&background=0f172a&color=ffffff&size=128&bold=true`;
+        };
+
         const setProfile = async () => {
           let user = window.Morpheus.getUser();
           console.log("[STUDENT] cached user", user);
@@ -696,6 +702,14 @@
           }
           if (initialsPopup) {
             initialsPopup.textContent = initialsFor(displayName);
+          }
+          const avatarImage = document.getElementById("student-avatar");
+          const avatarImagePopup = document.getElementById("student-avatar-popup");
+          if (avatarImage) {
+            avatarImage.src = avatarUrlFor(displayName);
+          }
+          if (avatarImagePopup) {
+            avatarImagePopup.src = avatarUrlFor(displayName);
           }
           if (user?.email && profileEmail) {
             profileEmail.textContent = user.email;

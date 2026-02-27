@@ -765,10 +765,10 @@
         <header class="hero-head" id="home">
           <div class="org-tab">
             <div class="org-brand">
-              <img src="vit.png" alt="Org logo" />
+              <img src="logo.png" alt="Org logo" />
               <div>
-                <div class="org-title">Vishwakarma Institute of Technology</div>
-                <div class="org-subtitle">Pune</div>
+                <div class="org-title">Quatarly</div>
+                <div class="org-subtitle">Org</div>
               </div>
             </div>
             <div class="org-actions">
@@ -802,7 +802,7 @@
                 aria-controls="profile-popup"
               >
                 <span class="avatar">
-                  <img class="avatar-image" src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
+                  <img class="avatar-image" id="faculty-avatar" alt="Faculty profile" />
                   <span class="avatar-fallback" id="avatar-initials">--</span>
                 </span>
               </button>
@@ -810,7 +810,7 @@
                 <div class="profile-popup-header">
                   <div class="profile-popup-avatar">
                     <span class="avatar">
-                      <img class="avatar-image" src="https://i.pravatar.cc/150?img=32" alt="Faculty avatar" />
+                      <img class="avatar-image" id="faculty-avatar-popup" alt="Faculty avatar" />
                       <span class="avatar-fallback" id="avatar-initials-popup">--</span>
                     </span>
                   </div>
@@ -1173,6 +1173,12 @@
           return `${first}${last}`.toUpperCase() || "--";
         };
 
+        const avatarUrlFor = (value) => {
+          const safe = (value || "User").trim() || "User";
+          const encoded = encodeURIComponent(safe);
+          return `https://ui-avatars.com/api/?name=${encoded}&background=0f172a&color=ffffff&size=128&bold=true`;
+        };
+
         const init = async () => {
           let user = Morpheus.getUser();
           if (!user) {
@@ -1182,6 +1188,7 @@
               user = null;
             }
           }
+          const displayName = user?.full_name || user?.email || "Faculty";
           if (user?.full_name) {
             if (els.title) {
               els.title.textContent = `${user.full_name} Dashboard`;
@@ -1197,10 +1204,18 @@
             els.orgStatus.textContent = "Active";
           }
           if (els.avatarInitials) {
-            els.avatarInitials.textContent = initialsFor(user?.full_name);
+            els.avatarInitials.textContent = initialsFor(displayName);
           }
           if (els.avatarInitialsPopup) {
-            els.avatarInitialsPopup.textContent = initialsFor(user?.full_name);
+            els.avatarInitialsPopup.textContent = initialsFor(displayName);
+          }
+          const avatarImage = document.getElementById("faculty-avatar");
+          const avatarImagePopup = document.getElementById("faculty-avatar-popup");
+          if (avatarImage) {
+            avatarImage.src = avatarUrlFor(displayName);
+          }
+          if (avatarImagePopup) {
+            avatarImagePopup.src = avatarUrlFor(displayName);
           }
           if (user?.email && els.profileEmail) {
             els.profileEmail.textContent = user.email;

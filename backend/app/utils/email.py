@@ -5,10 +5,21 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+from email.utils import parseaddr
 from typing import Optional
 from io import BytesIO
 
 from app.core.config import settings
+
+
+def _sanitize_email_address(value: str) -> str:
+    if not value:
+        raise ValueError("Empty email address")
+    _, addr = parseaddr(value)
+    addr = addr.strip().rstrip("\\")
+    if not addr or "@" not in addr or " " in addr or "\\" in addr:
+        raise ValueError(f"Invalid email address: {value}")
+    return addr
 
 
 async def send_email_with_attachment(
@@ -37,9 +48,11 @@ async def send_email_with_attachment(
     
     try:
         # Create message
+        sender_email = _sanitize_email_address(settings.SMTP_FROM_EMAIL or settings.SMTP_USER)
+        recipient_email = _sanitize_email_address(to_email)
         msg = MIMEMultipart()
-        msg['From'] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL or settings.SMTP_USER}>"
-        msg['To'] = to_email
+        msg['From'] = f"{settings.SMTP_FROM_NAME} <{sender_email}>"
+        msg['To'] = recipient_email
         msg['Subject'] = subject
         
         # Add HTML body
@@ -59,7 +72,7 @@ async def send_email_with_attachment(
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.send_message(msg)
         
-        print(f"✅ Email sent to {to_email}")
+        print(f"✅ Email sent to {recipient_email}")
         return True
         
     except Exception as e:

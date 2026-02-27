@@ -82,6 +82,142 @@ Quatarly is a comprehensive AI-powered online examination platform with intellig
 
 ---
 
+## System Architecture
+
+```mermaid
+flowchart LR
+  subgraph Clients
+    Student[Student Browser]
+    Faculty[Faculty Browser]
+  end
+
+  subgraph Frontend
+    UI[Static HTML/CSS/JS]
+  end
+
+  subgraph Backend
+    API[FastAPI REST API]
+    WS[WebSocket Proctoring]
+    Auth[Auth & RBAC]
+    Grading[Grading & Analytics]
+    Reports[PDF/Email Service]
+  end
+
+  subgraph Data
+    DB[(PostgreSQL)]
+  end
+
+  subgraph ML
+    Vision[YOLOv10n Detection]
+    NLP[SentenceTransformer Scoring]
+  end
+
+  subgraph Integrations
+    SMTP[SMTP Server]
+  end
+
+  Student --> UI
+  Faculty --> UI
+  UI --> API
+  UI --> WS
+  API --> Auth
+  API --> DB
+  API --> Grading
+  Grading --> NLP
+  WS --> Vision
+  Reports --> SMTP
+  API --> Reports
+```
+
+## Feature Flow (Student)
+
+```mermaid
+sequenceDiagram
+  actor Student
+  participant UI as Frontend UI
+  participant API as Backend API
+  participant WS as Proctoring WS
+  participant ML as ML Models
+  participant DB as PostgreSQL
+  participant SMTP as SMTP
+
+  Student->>UI: Login
+  UI->>API: Auth (JWT)
+  API->>DB: Validate user
+  API-->>UI: Token
+
+  Student->>UI: Face verify
+  UI->>API: Face verify request
+  API->>ML: Compare embeddings
+  API-->>UI: Verification result
+
+  Student->>UI: Start exam
+  UI->>API: Create session
+  API->>DB: Persist session
+
+  loop During exam
+    Student->>UI: Camera/Audio/Tab events
+    UI->>WS: Stream proctoring signals
+    WS->>ML: Detect violations
+    WS->>DB: Log events
+  end
+
+  Student->>UI: Submit/Finish
+  UI->>API: Submit answers
+  API->>DB: Store responses
+  API->>ML: Grade subjective answers
+  API->>DB: Store scores
+
+  Student->>UI: View analytics
+  UI->>API: Fetch analytics
+  API->>DB: Aggregate results
+  API-->>UI: Analytics data
+
+  Student->>UI: Request PDF/Email
+  UI->>API: Generate report
+  API->>SMTP: Send email
+  API-->>UI: Confirmation
+```
+
+## Feature Flow (Professor)
+
+```mermaid
+sequenceDiagram
+  actor Professor
+  participant UI as Frontend UI
+  participant API as Backend API
+  participant WS as Proctoring WS
+  participant ML as ML Models
+  participant DB as PostgreSQL
+  participant SMTP as SMTP
+
+  Professor->>UI: Login
+  UI->>API: Auth (JWT)
+  API->>DB: Validate user
+  API-->>UI: Token
+
+  Professor->>UI: Create/Manage exam
+  UI->>API: Create/Update exam
+  API->>DB: Persist exam
+
+  Professor->>UI: Monitor live
+  UI->>WS: Subscribe to session
+  WS->>DB: Stream violations
+  WS->>ML: Detect anomalies
+
+  Professor->>UI: View analytics
+  UI->>API: Fetch analytics
+  API->>DB: Aggregate results
+  API-->>UI: Analytics data
+
+  Professor->>UI: Download/Email reports
+  UI->>API: Generate report
+  API->>SMTP: Send email
+  API-->>UI: Confirmation
+```
+
+---
+
 ## Quick Start
 
 ### Prerequisites
