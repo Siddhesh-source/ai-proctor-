@@ -171,9 +171,16 @@ async def face_verify(
 
 @router.get("/me")
 async def get_me(current_user: User = Depends(get_current_user)) -> dict:
+    full_name = (current_user.full_name or "").strip()
+    if not full_name and current_user.email:
+        full_name = current_user.email.split("@", 1)[0]
+    logger.info(
+        "Auth me resolved",
+        extra={"user_id": str(current_user.id), "email": current_user.email, "full_name": full_name},
+    )
     return {
         "id": str(current_user.id),
         "email": current_user.email,
-        "full_name": current_user.full_name,
+        "full_name": full_name,
         "role": current_user.role,
     }

@@ -60,6 +60,7 @@
       .student-card:hover { border-color: var(--border-strong); }
       .student-card.flagged { border-color: rgba(255,120,120,0.4); box-shadow: 0 0 20px rgba(255,80,80,0.1); }
       .student-card.watched { border-color: rgba(215,255,69,0.5); box-shadow: 0 0 20px rgba(215,255,69,0.08); }
+      .student-card.reviewed { border-color: rgba(255, 214, 64, 0.6); box-shadow: 0 0 20px rgba(255, 214, 64, 0.12); }
 
       .card-frame { width: 100%; height: 170px; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
       .card-frame video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
@@ -83,7 +84,7 @@
       .card-violations-mini { display: flex; gap: 4px; flex-wrap: wrap; }
       .violation-chip { border-radius: 6px; padding: 2px 6px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; background: rgba(255,120,120,0.15); color: var(--red); border: 1px solid rgba(255,120,120,0.25); }
 
-      .card-actions { display: flex; gap: 6px; padding: 0 14px 12px; }
+      .card-actions { display: flex; gap: 6px; padding: 0 14px 12px; flex-wrap: wrap; }
 
       .watch-btn { position: absolute; bottom: 56px; right: 10px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: rgba(0,0,0,0.5); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; z-index: 2; backdrop-filter: blur(4px); transition: all 160ms var(--ease); }
       .watch-btn:hover, .watch-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(215,255,69,0.1); }
@@ -92,15 +93,25 @@
       .logs-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
       .panel-title { text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; }
       .logs-scroll { max-height: 360px; overflow-y: auto; }
-      .log-row { display: grid; grid-template-columns: 90px 80px 140px 1fr; gap: 8px; padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; align-items: center; }
+      .log-row { display: grid; grid-template-columns: 90px 80px 140px 140px 1fr; gap: 8px; padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 11px; align-items: center; }
       .log-row:hover { background: rgba(255,255,255,0.02); }
       .log-time { color: var(--muted); font-variant-numeric: tabular-nums; }
       .log-session { color: var(--muted); font-family: monospace; font-size: 10px; }
+      .log-student { color: rgba(255,255,255,0.82); font-size: 11px; }
       .log-event { text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; font-size: 10px; }
       .log-event.violation { color: var(--red); }
       .log-event.info { color: var(--green); }
       .log-explain { color: var(--muted); }
       .log-empty { padding: 24px 18px; color: var(--muted); font-size: 12px; }
+
+      .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 50; }
+      .modal-backdrop.show { display: flex; }
+      .modal { max-width: 520px; width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border); background: rgba(15, 15, 18, 0.98); padding: 20px; display: grid; gap: 14px; box-shadow: var(--shadow); }
+      .modal h3 { text-transform: uppercase; letter-spacing: 0.12em; font-size: 16px; }
+      .modal p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+      .modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+      .modal select { border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.35); color: var(--text); padding: 8px 10px; font-size: 12px; }
+      .modal .helper { font-size: 11px; color: var(--muted); }
 
       @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
       .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; animation: pulse 1.5s infinite; margin-right: 6px; }
@@ -108,7 +119,8 @@
 
       @media (max-width: 768px) {
         .monitor-grid { grid-template-columns: 1fr; }
-        .log-row { grid-template-columns: 70px 60px 1fr; }
+        .log-row { grid-template-columns: 70px 120px 1fr; }
+        .log-session { display: none; }
         .log-explain { display: none; }
       }
     </style>
@@ -146,10 +158,25 @@
 
         <div class="logs-panel">
           <div class="logs-header">
-            <div class="panel-title">Live Activity Log</div>
-            <span style="font-size:11px;color:var(--muted);" id="log-count">0 events</span>
+            <div class="panel-title" id="log-title">Live Activity Log</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="button sm" id="log-reset" type="button">All Logs</button>
+              <span style="font-size:11px;color:var(--muted);" id="log-count">0 events</span>
+            </div>
           </div>
           <div class="logs-scroll" id="logs-scroll"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="action-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <h3 id="action-title">Action</h3>
+        <p id="action-desc"></p>
+        <div id="action-body"></div>
+        <div class="modal-actions">
+          <button class="button" id="action-cancel" type="button">Cancel</button>
+          <button class="button primary" id="action-confirm" type="button">Confirm</button>
         </div>
       </div>
     </div>
@@ -167,6 +194,12 @@
         const $ = (id) => document.getElementById(id);
         const grid = $("grid");
         const logsEl = $("logs-scroll");
+        const actionModal = $("action-modal");
+        const actionTitle = $("action-title");
+        const actionDesc = $("action-desc");
+        const actionBody = $("action-body");
+        const actionCancel = $("action-cancel");
+        const actionConfirm = $("action-confirm");
 
         if (!exam_id) {
           $("monitor-subtitle").textContent = "No exam selected.";
@@ -193,13 +226,31 @@
         };
 
         const watchlist = new Set(JSON.parse(sessionStorage.getItem("monitor_watchlist") || "[]"));
+        const reviewlist = new Set(JSON.parse(sessionStorage.getItem("monitor_reviewlist") || "[]"));
         let filter = "all", search = "", paused = false;
         let students = [], logs = [], examTitle = null;
+        let selectedSessionId = null;
+        let pendingAction = null;
 
         // ---- Helpers ----
         const esc = (s) => { const d = document.createElement("div"); d.textContent = s||""; return d.innerHTML; };
         const iColor = (v) => v > 80 ? "var(--green)" : v >= 50 ? "var(--yellow)" : "var(--red)";
         const saveWatch = () => sessionStorage.setItem("monitor_watchlist", JSON.stringify([...watchlist]));
+        const saveReview = () => sessionStorage.setItem("monitor_reviewlist", JSON.stringify([...reviewlist]));
+
+        const openModal = (title, description, bodyNode, onConfirm) => {
+          actionTitle.textContent = title;
+          actionDesc.textContent = description;
+          actionBody.innerHTML = "";
+          if (bodyNode) actionBody.appendChild(bodyNode);
+          pendingAction = onConfirm;
+          actionModal.classList.add("show");
+        };
+
+        const closeModal = () => {
+          actionModal.classList.remove("show");
+          pendingAction = null;
+        };
 
         // ---- Stats ----
         const renderStats = () => {
@@ -250,7 +301,7 @@
 
           const noFeed = document.createElement("span");
           noFeed.className = "no-feed";
-          noFeed.textContent = s.status === "active" ? "Waiting for feed..." : "No Feed";
+          noFeed.textContent = s.status === "active" ? "Waiting for feed..." : "Exam Done";
           frame.appendChild(noFeed);
 
           const badge = document.createElement("span");
@@ -293,9 +344,86 @@
           detailBtn.className = "button sm";
           detailBtn.textContent = "Detail";
           detailBtn.addEventListener("click", () => {
-            window.location.href = `result.html?session_id=${encodeURIComponent(s.session_id)}`;
+            selectedSessionId = s.session_id;
+            renderLogs();
+            document.querySelector(".logs-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
           });
           actions.appendChild(detailBtn);
+
+          const endBtn = document.createElement("button");
+          endBtn.className = "button sm danger";
+          endBtn.textContent = "End Exam";
+          endBtn.addEventListener("click", async () => {
+            openModal(
+              "Force end exam",
+              `This will immediately finish the exam for ${s.student_name || "this student"} and trigger grading.`,
+              null,
+              async () => {
+                try {
+                  await Morpheus.forceFinishSession(s.session_id);
+                  await pollData();
+                } catch (err) {
+                  console.error("[MONITOR] Force-end failed:", err);
+                }
+              },
+            );
+          });
+          actions.appendChild(endBtn);
+
+          const violationBtn = document.createElement("button");
+          violationBtn.className = "button sm";
+          violationBtn.textContent = "Add Violation";
+          violationBtn.addEventListener("click", async () => {
+            const select = document.createElement("select");
+            Object.keys(VLABEL).forEach((key) => {
+              const opt = document.createElement("option");
+              opt.value = key;
+              opt.textContent = VLABEL[key];
+              select.appendChild(opt);
+            });
+            const wrap = document.createElement("div");
+            const label = document.createElement("div");
+            label.className = "helper";
+            label.textContent = "Violation type";
+            const helper = document.createElement("div");
+            helper.className = "helper";
+            helper.textContent = `Code: ${select.value}`;
+            select.addEventListener("change", () => {
+              helper.textContent = `Code: ${select.value}`;
+            });
+            wrap.appendChild(label);
+            wrap.appendChild(select);
+            wrap.appendChild(helper);
+            openModal(
+              "Add violation",
+              `Log a violation for ${s.student_name || "this student"}. This will update integrity score.`,
+              wrap,
+              async () => {
+                const key = select.value;
+                try {
+                  await Morpheus.sendViolation(s.session_id, key, 0.9, { source: "professor" });
+                  await pollData();
+                } catch (err) {
+                  console.error("[MONITOR] Add violation failed:", err);
+                }
+              },
+            );
+          });
+          actions.appendChild(violationBtn);
+
+          const reviewBtn = document.createElement("button");
+          reviewBtn.className = "button sm";
+          reviewBtn.textContent = "Mark Review";
+          reviewBtn.addEventListener("click", () => {
+            if (reviewlist.has(s.session_id)) {
+              reviewlist.delete(s.session_id);
+            } else {
+              reviewlist.add(s.session_id);
+            }
+            saveReview();
+            rebuildGrid();
+          });
+          actions.appendChild(reviewBtn);
           card.appendChild(actions);
 
           cardElements[s.session_id] = card;
@@ -305,7 +433,8 @@
         const updateCard = (card, s) => {
           const isWatched = watchlist.has(s.session_id);
           const isFlagged = s.integrity_score < 50;
-          card.className = `student-card ${isWatched ? "watched" : isFlagged ? "flagged" : ""}`;
+          const isReviewed = reviewlist.has(s.session_id);
+          card.className = `student-card ${isReviewed ? "reviewed" : ""} ${isWatched ? "watched" : isFlagged ? "flagged" : ""}`;
 
           // Update badge
           const badge = card.querySelector(".card-badge");
@@ -314,7 +443,7 @@
             badge.textContent = "Live";
           } else {
             badge.className = "card-badge badge-completed";
-            badge.textContent = "Done";
+            badge.textContent = "Exam Done";
           }
 
           // Update integrity overlay
@@ -330,7 +459,7 @@
           } else {
             if (noFeed) {
               noFeed.style.display = "";
-              noFeed.textContent = s.status === "active" ? "Waiting for feed..." : "No Feed";
+              noFeed.textContent = s.status === "active" ? "Waiting for feed..." : "Exam Done";
             }
           }
 
@@ -348,8 +477,12 @@
           `;
           const chips = (s.recent_violations||[]).map(v =>
             `<span class="violation-chip">${VLABEL[v.type]||v.type}</span>`
-          ).join("") || '<span style="font-size:10px;color:var(--muted)">No violations</span>';
-          card.querySelector(".card-violations-mini").innerHTML = chips;
+          ).join("");
+          const reviewChip = isReviewed
+            ? '<span class="violation-chip" style="border-color:rgba(255,214,64,0.5);color:#ffd166;background:rgba(255,214,64,0.14)">Review</span>'
+            : "";
+          const chipMarkup = `${reviewChip}${chips || ""}`;
+          card.querySelector(".card-violations-mini").innerHTML = chipMarkup || '<span style="font-size:10px;color:var(--muted)">No violations</span>';
         };
 
         const rebuildGrid = () => {
@@ -511,14 +644,28 @@
 
         // ---- Logs ----
         const renderLogs = () => {
-          $("log-count").textContent = `${logs.length} events`;
-          if (!logs.length) { logsEl.innerHTML = '<div class="log-empty">No activity logs yet.</div>'; return; }
-          const sorted = [...logs].sort((a,b) => {
+          const sessionToName = new Map(students.map(s => [s.session_id, s.student_name || "Unknown"]));
+          const filtered = selectedSessionId
+            ? logs.filter(l => l.session_id === selectedSessionId)
+            : logs;
+
+          const title = selectedSessionId
+            ? `Activity Log · ${sessionToName.get(selectedSessionId) || selectedSessionId.slice(0, 8)}`
+            : "Live Activity Log";
+          $("log-title").textContent = title;
+          $("log-count").textContent = `${filtered.length} events`;
+
+          if (!filtered.length) {
+            logsEl.innerHTML = '<div class="log-empty">No activity logs yet.</div>';
+            return;
+          }
+          const sorted = [...filtered].sort((a,b) => {
             return (b.created_at?new Date(b.created_at).getTime():0) - (a.created_at?new Date(a.created_at).getTime():0);
           });
           logsEl.innerHTML = sorted.slice(0,100).map(log => {
             const time = log.created_at ? new Date(log.created_at).toLocaleTimeString() : "--";
             const sid = log.session_id ? log.session_id.slice(0,8) : "--";
+            const studentName = sessionToName.get(log.session_id) || "Unknown";
             const ev = log.event_type || "";
             const isV = !ev.startsWith("session_");
             const label = VLABEL[ev] || log.message || ev;
@@ -526,6 +673,7 @@
             return `<div class="log-row">
               <span class="log-time">${time}</span>
               <span class="log-session">${sid}</span>
+              <span class="log-student">${esc(studentName)}</span>
               <span class="log-event ${isV?'violation':'info'}">${esc(label)}</span>
               <span class="log-explain">${esc(explain)}</span>
             </div>`;
@@ -574,6 +722,18 @@
           paused = !paused;
           $("btn-pause").innerHTML = paused ? '&#9654; Paused' : '<span class="live-dot"></span>Live';
           renderStats();
+        });
+
+        $("log-reset").addEventListener("click", () => {
+          selectedSessionId = null;
+          renderLogs();
+        });
+
+        actionCancel.addEventListener("click", closeModal);
+        actionConfirm.addEventListener("click", async () => {
+          if (!pendingAction) return closeModal();
+          await pendingAction();
+          closeModal();
         });
 
         // ---- Start ----

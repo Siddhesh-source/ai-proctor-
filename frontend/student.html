@@ -519,10 +519,10 @@
           <div class="separator" role="separator" aria-orientation="horizontal"></div>
           <div class="org-info">
             <div class="org-info-row">
-              <span class="org-info-name">Himanshu Deshmukh</span>
-              <span class="org-info-status">Active</span>
-              <span class="org-info-detail">Registration No: 12414955</span>
-              <span class="org-info-detail">BTech - Computer Science and Engineering (AI &amp; ML)</span>
+              <span class="org-info-name" id="student-name">—</span>
+              <span class="org-info-status" id="student-status">—</span>
+              <span class="org-info-detail" id="student-reg">Registration No: —</span>
+              <span class="org-info-detail" id="student-dept">—</span>
             </div>
           </div>
           <div class="header">
@@ -544,7 +544,7 @@
               >
                 <span class="avatar">
                   <img class="avatar-image" src="https://i.pravatar.cc/150?img=12" alt="Student profile" />
-                  <span class="avatar-fallback">HD</span>
+                  <span class="avatar-fallback" id="student-initials">--</span>
                 </span>
               </button>
               <div class="profile-popup" id="profile-popup" role="menu" aria-hidden="true">
@@ -552,12 +552,12 @@
                   <div class="profile-popup-avatar">
                     <span class="avatar">
                       <img class="avatar-image" src="https://i.pravatar.cc/150?img=12" alt="Student avatar" />
-                      <span class="avatar-fallback">HD</span>
+                      <span class="avatar-fallback" id="student-initials-popup">--</span>
                     </span>
                   </div>
                   <div>
-                    <div class="profile-popup-name">Himanshu Deshmukh</div>
-                    <div class="profile-popup-email">himanshu.deshmukh24@vit.edu</div>
+                    <div class="profile-popup-name">—</div>
+                    <div class="profile-popup-email">—</div>
                   </div>
                 </div>
                 <div class="profile-options">
@@ -653,11 +653,25 @@
         const activeBody = document.getElementById("active-exams-body");
         const profileName = document.querySelector(".profile-popup-name");
         const profileEmail = document.querySelector(".profile-popup-email");
-        const orgName = document.querySelector(".org-info-name");
+        const orgName = document.getElementById("student-name");
+        const orgStatus = document.getElementById("student-status");
+        const orgReg = document.getElementById("student-reg");
+        const orgDept = document.getElementById("student-dept");
+        const initials = document.getElementById("student-initials");
+        const initialsPopup = document.getElementById("student-initials-popup");
         const logoutOption = document.querySelector('[data-action="logout"]');
+
+        const initialsFor = (name) => {
+          if (!name) return "--";
+          const parts = name.trim().split(/\s+/);
+          const first = parts[0]?.[0] || "";
+          const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+          return `${first}${last}`.toUpperCase() || "--";
+        };
 
         const setProfile = async () => {
           let user = window.Morpheus.getUser();
+          console.log("[STUDENT] cached user", user);
           if (!user) {
             try {
               user = await window.Morpheus.getMe();
@@ -665,16 +679,43 @@
               user = null;
             }
           }
-          if (user?.full_name) {
-            if (orgName) {
-              orgName.textContent = user.full_name;
-            }
-            if (profileName) {
-              profileName.textContent = user.full_name;
-            }
+          console.log("[STUDENT] resolved user", user);
+          const displayName = user?.full_name || user?.email || "Student";
+          console.log("[STUDENT] displayName", displayName);
+          if (orgName) {
+            orgName.textContent = displayName;
+          }
+          if (profileName) {
+            profileName.textContent = displayName;
+          }
+          if (orgStatus) {
+            orgStatus.textContent = "Active";
+          }
+          if (initials) {
+            initials.textContent = initialsFor(displayName);
+          }
+          if (initialsPopup) {
+            initialsPopup.textContent = initialsFor(displayName);
           }
           if (user?.email && profileEmail) {
             profileEmail.textContent = user.email;
+          }
+
+          const regNo = user?.registration_no || user?.registrationNo || "";
+          const dept = user?.department || user?.department_name || user?.departmentName || "";
+          if (orgReg) {
+            if (regNo) {
+              orgReg.textContent = `Registration No: ${regNo}`;
+            } else {
+              orgReg.style.display = "none";
+            }
+          }
+          if (orgDept) {
+            if (dept) {
+              orgDept.textContent = dept;
+            } else {
+              orgDept.style.display = "none";
+            }
           }
         };
 

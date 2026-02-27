@@ -266,6 +266,10 @@ async function getLiveSessions(exam_id) {
   return apiCall('GET', `/proctoring/exam/${exam_id}/live`);
 }
 
+async function forceFinishSession(session_id) {
+  return apiCall('POST', `/proctoring/session/${session_id}/force-finish`, {});
+}
+
 async function getLiveFrame(session_id) {
   const origin = await resolveApiOrigin();
   const url = `${origin}/api/v1/proctoring/session/${session_id}/frame?t=${Date.now()}`;
@@ -326,6 +330,7 @@ window.Morpheus = {
   emailResult,
   getExamLogs,
   getLiveSessions,
+  forceFinishSession,
   connectProctoringWS,
   getToken,
   setToken,

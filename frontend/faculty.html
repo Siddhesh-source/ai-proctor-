@@ -779,10 +779,10 @@
           <div class="separator" role="separator" aria-orientation="horizontal"></div>
           <div class="org-info">
             <div class="org-info-row">
-              <span class="org-info-name">Himanshu Deshmukh</span>
-              <span class="org-info-status">Active</span>
-              <span class="org-info-detail">Registration No: 12414955</span>
-              <span class="org-info-detail">BTech - Computer Science and Engineering (AI &amp; ML)</span>
+              <span class="org-info-name" id="faculty-name">—</span>
+              <span class="org-info-status" id="faculty-status">—</span>
+              <span class="org-info-detail" id="faculty-reg">Registration No: —</span>
+              <span class="org-info-detail" id="faculty-dept">—</span>
             </div>
           </div>
           <div>
@@ -803,7 +803,7 @@
               >
                 <span class="avatar">
                   <img class="avatar-image" src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
-                  <span class="avatar-fallback">HD</span>
+                  <span class="avatar-fallback" id="avatar-initials">--</span>
                 </span>
               </button>
               <div class="profile-popup" id="profile-popup" role="menu" aria-hidden="true">
@@ -811,12 +811,12 @@
                   <div class="profile-popup-avatar">
                     <span class="avatar">
                       <img class="avatar-image" src="https://i.pravatar.cc/150?img=32" alt="Faculty avatar" />
-                      <span class="avatar-fallback">HD</span>
+                      <span class="avatar-fallback" id="avatar-initials-popup">--</span>
                     </span>
                   </div>
                   <div>
-                    <div class="profile-popup-name">Himanshu Deshmukh</div>
-                    <div class="profile-popup-email">himanshu.deshmukh24@vit.edu</div>
+                    <div class="profile-popup-name">—</div>
+                    <div class="profile-popup-email">—</div>
                   </div>
                 </div>
                 <div class="profile-options">
@@ -973,7 +973,12 @@
           title: document.querySelector(".title"),
           profileName: document.querySelector(".profile-popup-name"),
           profileEmail: document.querySelector(".profile-popup-email"),
-          orgName: document.querySelector(".org-info-name"),
+          orgName: document.getElementById("faculty-name"),
+          orgStatus: document.getElementById("faculty-status"),
+          orgReg: document.getElementById("faculty-reg"),
+          orgDept: document.getElementById("faculty-dept"),
+          avatarInitials: document.getElementById("avatar-initials"),
+          avatarInitialsPopup: document.getElementById("avatar-initials-popup"),
           logoutLink: document.querySelector('a[href="login.html"]'),
           logoutOption: document.querySelector('[data-action="logout"]'),
         };
@@ -1160,6 +1165,14 @@
           renderTable();
         };
 
+        const initialsFor = (name) => {
+          if (!name) return "--";
+          const parts = name.trim().split(/\s+/);
+          const first = parts[0]?.[0] || "";
+          const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+          return `${first}${last}`.toUpperCase() || "--";
+        };
+
         const init = async () => {
           let user = Morpheus.getUser();
           if (!user) {
@@ -1180,8 +1193,34 @@
               els.profileName.textContent = user.full_name;
             }
           }
+          if (els.orgStatus) {
+            els.orgStatus.textContent = "Active";
+          }
+          if (els.avatarInitials) {
+            els.avatarInitials.textContent = initialsFor(user?.full_name);
+          }
+          if (els.avatarInitialsPopup) {
+            els.avatarInitialsPopup.textContent = initialsFor(user?.full_name);
+          }
           if (user?.email && els.profileEmail) {
             els.profileEmail.textContent = user.email;
+          }
+
+          const regNo = user?.registration_no || user?.registrationNo || "";
+          const dept = user?.department || user?.department_name || user?.departmentName || "";
+          if (els.orgReg) {
+            if (regNo) {
+              els.orgReg.textContent = `Registration No: ${regNo}`;
+            } else {
+              els.orgReg.style.display = "none";
+            }
+          }
+          if (els.orgDept) {
+            if (dept) {
+              els.orgDept.textContent = dept;
+            } else {
+              els.orgDept.style.display = "none";
+            }
           }
 
           const logout = (event) => {

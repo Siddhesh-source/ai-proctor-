@@ -1,20 +1,22 @@
 import base64
 import logging
 import uuid
+from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import AsyncSessionLocal, get_db
 from app.core.sarvam import analyse_speech
 from app.models.db import Exam, ProctoringLog, Session as ExamSession, User
+from app.models.grading import grade_session
 from app.models.ml_models import yolo
 from app.utils.integrity import update_integrity
 
@@ -32,6 +34,15 @@ VIOLATION_EXPLANATIONS = {
     "no_mouse": "No mouse activity detected for extended period.",
     "screenshot_attempt": "Screenshot key/visibility change detected.",
 }
+
+
+async def grade_session_background(session_id: uuid.UUID) -> None:
+    try:
+        async with AsyncSessionLocal() as db:
+            await grade_session(session_id, db)
+        logger.info("Grading completed", extra={"session_id": str(session_id)})
+    except Exception:
+        logger.exception("Background grading failed for session %s", session_id)
 
 
 async def _get_session(session_id: str, db: AsyncSession) -> ExamSession:
@@ -283,6 +294,23 @@ async def process_violation(payload: dict, db: AsyncSession = Depends(get_db)) -
         extra={"session_id": str(session.id), "violation_type": violation_type},
     )
     return {"integrity_score": integrity_score}
+
+
+@router.post("/session/{session_id}/force-finish")
+async def force_finish_session(
+    session_id: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    if current_user.role != "professor":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    session = await _get_session(session_id, db)
+    session.finished_at = datetime.now(timezone.utc)
+    session.status = "completed"
+    await db.commit()
+    background_tasks.add_task(grade_session_background, session.id)
+    return {"status": "completed"}
 
 
 @router.get("/exam/{exam_id}/live")
