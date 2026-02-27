@@ -67,7 +67,8 @@ async function apiCall(method, path, body = null, requiresAuth = true) {
 
   const options = {
     method,
-    headers
+    headers,
+    cache: 'no-store'
   };
 
   if (body !== null) {
@@ -182,6 +183,10 @@ async function sendAudio(session_id, voice_energy, keywords_detected = []) {
   return apiCall('POST', '/proctoring/audio', { session_id, voice_energy, keywords_detected });
 }
 
+async function sendAudioStt(session_id, audio_base64, mime_type) {
+  return apiCall('POST', '/proctoring/audio/stt', { session_id, audio_base64, mime_type });
+}
+
 async function sendRaf(session_id, delta_ms) {
   return apiCall('POST', '/proctoring/raf', { session_id, delta_ms });
 }
@@ -203,8 +208,45 @@ async function getResult(session_id) {
   return apiCall('GET', `/results/${session_id}`);
 }
 
+async function getMyResults() {
+  return apiCall('GET', '/results/me');
+}
+
 async function getExamResults(exam_id) {
   return apiCall('GET', `/results/exam/${exam_id}`);
+}
+
+async function overrideScore(session_id, question_id, score, note = null) {
+  return apiCall('PATCH', `/results/${session_id}/responses/${question_id}/override`, { score, note });
+}
+
+async function downloadResultPdf(session_id) {
+  const origin = await resolveApiOrigin();
+  const url = `${origin}/api/v1/results/${session_id}/pdf`;
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error('Failed to download PDF');
+  const blob = await response.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `exam_report_${session_id.slice(0, 8)}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function emailResult(session_id) {
+  return apiCall('POST', `/results/${session_id}/email`);
+}
+
+async function getExamLogs(exam_id) {
+  return apiCall('GET', `/proctoring/exam/${exam_id}/logs`);
+}
+
+async function getLiveFrame(session_id) {
+  const stamp = Date.now();
+  return apiCall('GET', `/proctoring/session/${session_id}/frame?t=${stamp}`);
 }
 
 function connectProctoringWS(session_id, onMessage) {
@@ -243,11 +285,18 @@ window.Morpheus = {
   createExam,
   sendFrame,
   sendAudio,
+  sendAudioStt,
   sendRaf,
   sendViolation,
   getIntegrity,
+  getLiveFrame,
   getResult,
+  getMyResults,
   getExamResults,
+  overrideScore,
+  downloadResultPdf,
+  emailResult,
+  getExamLogs,
   connectProctoringWS,
   getToken,
   setToken,

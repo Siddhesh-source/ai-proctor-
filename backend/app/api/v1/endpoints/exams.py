@@ -35,8 +35,12 @@ def _require_role(user: User, role: str) -> None:
 
 
 async def grade_session_background(session_id: uuid.UUID) -> None:
-    async with AsyncSessionLocal() as db:
-        await grade_session(session_id, db)
+    try:
+        async with AsyncSessionLocal() as db:
+            await grade_session(session_id, db)
+        logger.info("Grading completed", extra={"session_id": str(session_id)})
+    except Exception:
+        logger.exception("Background grading failed for session %s", session_id)
 
 
 @router.post("", response_model=ExamCreateResponse)
@@ -205,7 +209,7 @@ async def start_exam(
         student_id=current_user.id,
         exam_id=exam.id,
         status="active",
-        started_at=datetime.utcnow(),
+        started_at=datetime.now(timezone.utc),
     )
     db.add(session)
     await db.commit()
@@ -299,18 +303,20 @@ async def submit_answer(
     )
     response = response_result.scalar_one_or_none()
     
-    current_time = datetime.utcnow()
+    current_time = datetime.now(timezone.utc)
     
     if response:
         # Update existing response
         if response.submitted_at:
-            time_diff = int((current_time - response.submitted_at).total_seconds())
+            submitted = response.submitted_at
+            if submitted.tzinfo is None:
+                submitted = submitted.replace(tzinfo=timezone.utc)
+            time_diff = int((current_time - submitted).total_seconds())
             response.time_spent_seconds = (response.time_spent_seconds or 0) + time_diff
         response.answer = payload.answer
         response.submitted_at = current_time
     else:
         # Create new response
-        # Find the last submitted response for this session to calculate start_time
         last_resp_query = await db.execute(
             select(Response)
             .where(Response.session_id == session_uuid)
@@ -318,8 +324,11 @@ async def submit_answer(
             .limit(1)
         )
         last_resp = last_resp_query.scalar_one_or_none()
-        start_time = last_resp.submitted_at if last_resp and last_resp.submitted_at else session.started_at
-        
+        raw_start = last_resp.submitted_at if last_resp and last_resp.submitted_at else session.started_at
+        if raw_start is not None and raw_start.tzinfo is None:
+            raw_start = raw_start.replace(tzinfo=timezone.utc)
+        start_time = raw_start or current_time
+
         db.add(
             Response(
                 session_id=session_uuid,
@@ -360,7 +369,7 @@ async def finish_exam(
     session = session_result.scalar_one_or_none()
     if not session:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid session")
-    session.finished_at = datetime.utcnow()
+    session.finished_at = datetime.now(timezone.utc)
     session.status = "completed"
     await db.commit()
     background_tasks.add_task(grade_session_background, session_uuid)

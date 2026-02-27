@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import os
 import uuid
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
+
+os.environ.setdefault("TRANSFORMERS_NO_CODECARBON", "1")
 
 from sentence_transformers import SentenceTransformer, util
 from sqlalchemy import select
@@ -12,8 +15,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.db import Exam, Question, Response, Result, Session as ExamSession
 
+logger = logging.getLogger(__name__)
 
-nlp_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+try:
+    nlp_model = SentenceTransformer("all-MiniLM-L6-v2")
+    logger.info("SentenceTransformer loaded")
+except Exception as exc:
+    logger.exception("SentenceTransformer load failed")
+    raise
 
 LANGUAGE_CHOICES = {
     "c": "11",
@@ -167,6 +177,13 @@ async def grade_session(session_id: uuid.UUID, db: AsyncSession) -> None:
                 question.marks,
             )
             score = float(result["score"])
+            if not response.manually_graded:
+                response.grading_breakdown = {
+                    "semantic": result["semantic"],
+                    "keyword": result["keyword"],
+                    "structure": result["structure"],
+                    "needs_review": result["semantic"] < 0.45,
+                }
         elif question.type == "code":
             options: dict[str, Any] = question.options or {}
             language = options.get("language") or options.get("language_id") or options.get("lang")
@@ -178,7 +195,7 @@ async def grade_session(session_id: uuid.UUID, db: AsyncSession) -> None:
                 result = await grade_code(response.answer or "", language, test_cases)
                 score = float(result["score"])
         response.score = score
-        response.graded_at = datetime.utcnow()
+        response.graded_at = datetime.now(timezone.utc)
         total_score += score
     await db.flush()
     result_row = await db.execute(select(Result).where(Result.session_id == session_id))
@@ -187,7 +204,7 @@ async def grade_session(session_id: uuid.UUID, db: AsyncSession) -> None:
         existing.total_score = total_score
         existing.integrity_score = session.integrity_score
         existing.violation_summary = existing.violation_summary or {}
-        existing.generated_at = datetime.utcnow()
+        existing.generated_at = datetime.now(timezone.utc)
     else:
         db.add(
             Result(

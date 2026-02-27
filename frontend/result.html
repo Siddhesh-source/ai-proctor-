@@ -269,6 +269,58 @@
         color: var(--muted);
       }
 
+      .breakdown-bar-wrap {
+        display: grid;
+        gap: 8px;
+      }
+
+      .breakdown-bar-row {
+        display: grid;
+        grid-template-columns: 100px 1fr 42px;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .bar-track {
+        height: 6px;
+        border-radius: 99px;
+        background: rgba(255,255,255,0.08);
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 99px;
+        background: var(--accent);
+        transition: width 600ms cubic-bezier(0.2,0.8,0.2,1);
+      }
+
+      .bar-fill.low { background: #ff7a7a; }
+      .bar-fill.mid { background: #ffd166; }
+      .bar-fill.high { background: #44d17f; }
+
+      .badge.review {
+        background: rgba(255, 120, 120, 0.18);
+        border-color: rgba(255, 120, 120, 0.5);
+        color: #ff9a9a;
+      }
+
+      .badge.ai-graded {
+        background: rgba(90, 166, 255, 0.15);
+        border-color: rgba(90, 166, 255, 0.4);
+        color: #8ec8ff;
+      }
+
+      .badge.manual {
+        background: rgba(215, 255, 69, 0.12);
+        border-color: rgba(215, 255, 69, 0.4);
+        color: var(--accent);
+      }
+
       .violation-list {
         list-style: none;
         display: grid;
@@ -300,9 +352,11 @@
         <header class="header">
           <div>
             <div class="title">Result</div>
-            <div class="subtitle">Complete performance report for Database Systems Final.</div>
+            <div class="subtitle" id="result-subtitle">Loading results...</div>
           </div>
-          <div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="button" id="btn-download-pdf" style="display:none;" onclick="handleDownloadPdf()">Download PDF</button>
+            <button class="button" id="btn-email-report" style="display:none;" onclick="handleEmailReport()">Email Report</button>
             <a class="button" href="student.html">Back to Dashboard</a>
           </div>
         </header>
@@ -312,16 +366,16 @@
             <div class="summary-grid">
               <div class="metric">
                 <span>Total Score</span>
-                <strong>86 / 100</strong>
+                <strong>— / —</strong>
               </div>
               <div class="metric">
                 <span>Percentage</span>
-                <strong>86%</strong>
+                <strong>—</strong>
               </div>
               <div class="metric">
                 <span>Integrity</span>
-                <strong>94%</strong>
-                <span class="badge success">Trusted</span>
+                <strong>—</strong>
+                <span class="badge">—</span>
               </div>
             </div>
           </div>
@@ -353,6 +407,39 @@
 
     <script src="api.js"></script>
     <script>
+      let _currentSessionId = null;
+
+      async function handleDownloadPdf() {
+        if (!_currentSessionId) return;
+        const btn = document.getElementById("btn-download-pdf");
+        btn.textContent = "Downloading...";
+        btn.disabled = true;
+        try {
+          await Morpheus.downloadResultPdf(_currentSessionId);
+        } catch (e) {
+          alert("Failed to download PDF: " + e.message);
+        } finally {
+          btn.textContent = "Download PDF";
+          btn.disabled = false;
+        }
+      }
+
+      async function handleEmailReport() {
+        if (!_currentSessionId) return;
+        const btn = document.getElementById("btn-email-report");
+        btn.textContent = "Sending...";
+        btn.disabled = true;
+        try {
+          const res = await Morpheus.emailResult(_currentSessionId);
+          alert("Report emailed to " + (res.sent_to || "your email"));
+        } catch (e) {
+          alert("Failed to send email: " + e.message);
+        } finally {
+          btn.textContent = "Email Report";
+          btn.disabled = false;
+        }
+      }
+
       const start = () => {
         if (!Morpheus.requireAuth()) {
           return;
@@ -361,12 +448,14 @@
         const params = new URLSearchParams(window.location.search);
         const session_id = params.get("session_id") || sessionStorage.getItem("morpheus_session_id");
         const exam_id = params.get("exam_id");
+        _currentSessionId = session_id;
 
         const els = {
           questionReview: document.getElementById("question-review"),
           violationList: document.getElementById("violation-list"),
-          backLink: document.querySelector(".header .button"),
+          backLink: document.querySelector(".header a.button"),
           title: document.querySelector(".title"),
+          subtitle: document.getElementById("result-subtitle"),
         };
 
         const metrics = Array.from(document.querySelectorAll(".summary .metric"));
@@ -438,6 +527,53 @@
             .join("");
         };
 
+        const barFillClass = (pct) => {
+          if (pct >= 70) return "high";
+          if (pct >= 40) return "mid";
+          return "low";
+        };
+
+        const renderBreakdown = (response) => {
+          const bd = response.grading_breakdown;
+          if (!bd || response.question_type !== "subjective") return "";
+
+          const rows = [
+            { label: "Semantic", value: bd.semantic ?? 0 },
+            { label: "Keywords", value: bd.keyword ?? 0 },
+            { label: "Structure", value: bd.structure ?? 0 },
+          ];
+
+          const bars = rows.map(({ label, value }) => {
+            const pct = Math.round(value * 100);
+            const cls = barFillClass(pct);
+            return `
+              <div class="breakdown-bar-row">
+                <span>${escapeHtml(label)}</span>
+                <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+                <span>${pct}%</span>
+              </div>`;
+          }).join("");
+
+          const reviewBadge = bd.needs_review
+            ? `<span class="badge review">Needs Review</span>`
+            : "";
+          const gradeBadge = response.manually_graded
+            ? `<span class="badge manual">Manually Graded</span>`
+            : `<span class="badge ai-graded">AI Graded</span>`;
+          const note = response.override_note
+            ? `<div class="muted" style="font-size:12px;margin-top:4px;">Note: ${escapeHtml(response.override_note)}</div>`
+            : "";
+
+          return `
+            <div>
+              <div class="panel-title" style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                AI Grading Breakdown ${gradeBadge} ${reviewBadge}
+              </div>
+              <div class="breakdown-bar-wrap">${bars}</div>
+              ${note}
+            </div>`;
+        };
+
         const renderQuestionResponses = (responses) => {
           if (!els.questionReview) return;
           if (!responses || !responses.length) {
@@ -451,30 +587,22 @@
               const marksTotal = response.marks ?? "—";
               const marksText = `${formatScore(marksEarned)} / ${formatScore(marksTotal)}`;
               const badgeClass = marksEarned >= marksTotal ? "success" : "warning";
-              const breakdown = response.breakdown
-                ? `
-                    <div class="breakdown">
-                      ${Object.entries(response.breakdown)
-                        .map(
-                          ([key, value]) =>
-                            `<div class="breakdown-item">${escapeHtml(key)}: ${escapeHtml(value)}</div>`,
-                        )
-                        .join("")}
-                    </div>
-                  `
-                : "";
               return `
                 <div class="question-card">
                   <div class="question-header">
                     <h3>Question ${index + 1}</h3>
                     <span class="badge ${badgeClass}">${marksText}</span>
                   </div>
-                  <div class="muted">${escapeHtml(response.question_text || response.question_id || "Question")}</div>
+                  <div class="muted">${escapeHtml(response.question_text || "Question")}</div>
                   <div>
-                    <div class="panel-title" style="margin-bottom: 6px;">Student Answer</div>
+                    <div class="panel-title" style="margin-bottom: 6px;">Your Answer</div>
                     <div class="answer-block">${escapeHtml(response.answer ?? "—")}</div>
                   </div>
-                  ${breakdown}
+                  <div>
+                    <div class="panel-title" style="margin-bottom: 6px;">Correct Answer</div>
+                    <div class="answer-block" style="border-color:rgba(81,255,167,0.3);">${escapeHtml(response.correct_answer ?? "—")}</div>
+                  </div>
+                  ${renderBreakdown(response)}
                 </div>
               `;
             })
@@ -549,19 +677,49 @@
         };
 
         const loadSessionResult = async (id) => {
-          const result = await Morpheus.getResult(id);
-          const totalScore = result.total_score ?? "—";
+          let result;
+          try {
+            result = await Morpheus.getResult(id);
+          } catch (err) {
+            if (els.questionReview) {
+              els.questionReview.innerHTML = `<div class="muted">Could not load result: ${err.message || err}</div>`;
+            }
+            return;
+          }
+          if (!result) return;
+
+          // If grading hasn't finished yet, poll a few times
+          if (result.total_score === null && result.status === "completed") {
+            if (els.subtitle) els.subtitle.textContent = "Grading in progress...";
+            for (let i = 0; i < 5; i++) {
+              await new Promise((r) => setTimeout(r, 2000));
+              result = await Morpheus.getResult(id);
+              if (result.total_score !== null) break;
+            }
+          }
+          const examTitle = result.exam_title || "Exam";
+          if (els.subtitle) {
+            els.subtitle.textContent = `Complete performance report for ${examTitle}.`;
+          }
+
+          document.getElementById("btn-download-pdf").style.display = "";
+          document.getElementById("btn-email-report").style.display = "";
+
+          const totalScore = result.total_score ?? null;
           const totalMarks = (result.responses || []).reduce(
             (sum, response) => sum + (Number(response.marks) || 0),
             0,
           );
-          const percentage = totalMarks ? Math.round((Number(totalScore) / totalMarks) * 100) : "—";
+          const percentage = (totalMarks && totalScore !== null)
+            ? Math.round((Number(totalScore) / totalMarks) * 100)
+            : null;
           const integrity = result.integrity_score ?? "—";
           const tone = integrityTone(Number(result.integrity_score));
 
-          setMetric(totalMetric, `${formatScore(totalScore)} / ${formatScore(totalMarks || "—")}`);
-          setMetric(percentageMetric, formatPercent(percentage));
-          setMetric(integrityMetric, formatPercent(formatScore(integrity)));
+          const scoreDisplay = totalScore !== null ? `${totalScore} / ${totalMarks || "—"}` : `— / ${totalMarks || "—"}`;
+          setMetric(totalMetric, scoreDisplay);
+          setMetric(percentageMetric, percentage !== null ? `${percentage}%` : "—");
+          setMetric(integrityMetric, integrity !== "—" ? `${Math.round(Number(integrity))}%` : "—");
           if (integrityMetric) {
             const badge = integrityMetric.querySelector(".badge");
             if (badge) {
@@ -579,6 +737,9 @@
           if (els.title) {
             els.title.textContent = "Results Overview";
           }
+          if (els.subtitle) {
+            els.subtitle.textContent = `Showing all student results for this exam.`;
+          }
           renderExamResultsTable(rows || []);
           if (els.violationList) {
             els.violationList.innerHTML = "";
@@ -594,6 +755,9 @@
           if (exam_id) {
             await loadExamResults(exam_id);
             return;
+          }
+          if (els.subtitle) {
+            els.subtitle.textContent = "No result selected.";
           }
           if (els.questionReview) {
             els.questionReview.innerHTML = `<div class="muted">No result selected.</div>`;

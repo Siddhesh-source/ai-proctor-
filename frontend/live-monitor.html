@@ -262,6 +262,13 @@
         font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.12em;
+        overflow: hidden;
+      }
+
+      .video-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
       .student-name {
@@ -273,6 +280,26 @@
       .violations {
         color: var(--muted);
         font-size: 13px;
+      }
+
+      .log-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .log-table th,
+      .log-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: left;
+        font-size: 12px;
+      }
+
+      .log-table th {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
       }
     </style>
   </head>
@@ -313,32 +340,46 @@
             <div class="subtitle">
               Real-time footage of students currently attempting the exam. Review violations beneath each feed.
             </div>
+            <div class="subtitle" id="monitor-status"></div>
           </div>
           <div>
             <a class="button" href="faculty.html">Back to Dashboard</a>
           </div>
         </header>
 
-        <section class="grid" aria-label="Live student monitoring">
-          <div class="card">
-            <div class="video-frame">Live Feed</div>
-            <div class="student-name">Ananya Rao</div>
-            <div class="violations">Violations: 0</div>
+        <section class="card" aria-label="Monitor controls">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Monitor Controls</div>
+              <div class="muted">Live monitoring for the selected exam.</div>
+            </div>
+            <div class="quick-actions">
+              <button id="refresh-monitor" class="button" type="button">Refresh</button>
+            </div>
           </div>
-          <div class="card">
-            <div class="video-frame">Live Feed</div>
-            <div class="student-name">Kabir Singh</div>
-            <div class="violations">Violations: 1</div>
+        </section>
+
+        <section class="grid" aria-label="Live student monitoring"></section>
+
+        <section class="card" aria-label="Exam logs">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Exam Logs</div>
+              <div class="muted">Proctoring violations and system events for this exam.</div>
+            </div>
           </div>
-          <div class="card">
-            <div class="video-frame">Live Feed</div>
-            <div class="student-name">Meera Joshi</div>
-            <div class="violations">Violations: 2</div>
-          </div>
-          <div class="card">
-            <div class="video-frame">Live Feed</div>
-            <div class="student-name">Sara Khan</div>
-            <div class="violations">Violations: 0</div>
+          <div style="overflow:auto;">
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Session</th>
+                  <th scope="col">Event</th>
+                  <th scope="col">Explanation</th>
+                </tr>
+              </thead>
+              <tbody id="logs-body"></tbody>
+            </table>
           </div>
         </section>
       </div>
@@ -350,11 +391,16 @@
           return;
         }
 
-        const exam_id = new URLSearchParams(window.location.search).get("exam_id");
+        let exam_id =
+          new URLSearchParams(window.location.search).get("exam_id") ||
+          sessionStorage.getItem("morpheus_exam_id");
 
         const els = {
           container: document.querySelector("section.grid"),
           activeStatus: document.querySelector(".org-info-status"),
+          logsBody: document.getElementById("logs-body"),
+          monitorStatus: document.getElementById("monitor-status"),
+          refreshButton: document.getElementById("refresh-monitor"),
         };
 
         const getIntegrity = (session) => {
@@ -398,8 +444,9 @@
             const integrity = getIntegrity(session);
             const card = document.createElement("div");
             card.className = "card";
+            const sessionId = session.session_id || session.id || "";
             card.innerHTML = `
-              <div class="video-frame">Live Feed</div>
+              <div class="video-frame" data-session="${sessionId}">Live Feed</div>
               <div class="student-name">${session.student_name || "Student"}</div>
               <div class="violations">Violations: ${session.violation_count ?? 0}</div>
               <div class="violations">Total Score: ${formatScore(session.total_score)}</div>
@@ -410,7 +457,6 @@
               </div>
             `;
             const button = card.querySelector("button");
-            const sessionId = session.session_id || session.id || "";
             button.addEventListener("click", () => {
               if (!sessionId) return;
               window.location.href = `result.html?session_id=${encodeURIComponent(sessionId)}`;
@@ -422,9 +468,82 @@
           });
         };
 
+        const loadFrames = async (sessions) => {
+          const frames = Array.from(document.querySelectorAll(".video-frame[data-session]"));
+          await Promise.all(
+            frames.map(async (frame) => {
+              const sessionId = frame.getAttribute("data-session");
+              if (!sessionId) return;
+              try {
+                const result = await Morpheus.getLiveFrame(sessionId);
+                if (result?.frame_base64) {
+                  frame.innerHTML = `<img src="${result.frame_base64}" alt="Live frame" />`;
+                }
+              } catch (error) {
+                // ignore
+              }
+            })
+          );
+        };
+
+        const renderLogs = (logs) => {
+          if (!els.logsBody) return;
+          if (!Array.isArray(logs) || logs.length === 0) {
+            els.logsBody.innerHTML = `
+              <tr>
+                <td colspan="4" class="muted">No logs for this exam yet.</td>
+              </tr>
+            `;
+            return;
+          }
+          const ordered = [...logs].sort((a, b) => {
+            const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return bTime - aTime;
+          });
+          els.logsBody.innerHTML = ordered
+            .map((log) => {
+              const time = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
+              const session = log.session_id ? log.session_id.slice(0, 8) : "—";
+              const event = log.message || log.event_type || "—";
+              const explanation = log.explanation || "—";
+              return `
+                <tr>
+                  <td>${time}</td>
+                  <td>${session}</td>
+                  <td>${event}</td>
+                  <td>${explanation}</td>
+                </tr>
+              `;
+            })
+            .join("");
+        };
+
+        const resolveExam = async () => {
+          if (exam_id) return exam_id;
+          try {
+            const exams = await Morpheus.getProfessorExams();
+            if (exams?.length) {
+              const sorted = [...exams].sort(
+                (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+              );
+              exam_id = sorted[0].id;
+              sessionStorage.setItem("morpheus_exam_id", exam_id);
+            }
+          } catch (error) {
+            // ignore
+          }
+          return exam_id;
+        };
+
         const loadSessions = async () => {
+          await resolveExam();
           if (!exam_id) {
             renderSessionCards([]);
+            renderLogs([]);
+            if (els.monitorStatus) {
+              els.monitorStatus.textContent = "No exam selected.";
+            }
             return;
           }
           let sessions = [];
@@ -432,16 +551,41 @@
             sessions = await Morpheus.getExamResults(exam_id);
           } catch (error) {
             sessions = [];
+            if (els.monitorStatus) {
+              els.monitorStatus.textContent = `Exam ${exam_id}: Failed to load sessions`;
+            }
           }
           renderSessionCards(sessions);
           if (els.activeStatus) {
             const activeCount = sessions.filter((session) => session.status === "active").length;
             els.activeStatus.textContent = `Active (${activeCount})`;
           }
+
+          if (els.monitorStatus) {
+            els.monitorStatus.textContent = `Exam ${exam_id}: ${sessions.length} session(s)`;
+          }
+
+          loadFrames(sessions);
+
+          try {
+            const logs = await Morpheus.getExamLogs(exam_id);
+            renderLogs(logs);
+            if (els.monitorStatus) {
+              els.monitorStatus.textContent = `Exam ${exam_id}: ${sessions.length} session(s), ${logs.length} log(s)`;
+            }
+          } catch (error) {
+            renderLogs([]);
+          }
         };
 
+        if (els.refreshButton) {
+          els.refreshButton.addEventListener("click", () => {
+            loadSessions();
+          });
+        }
+
         loadSessions();
-        setInterval(loadSessions, 10000);
+        setInterval(loadSessions, 5000);
       };
 
       start();
