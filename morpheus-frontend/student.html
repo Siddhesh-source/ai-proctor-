@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #d7ff45;
+        --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+        --radius: 20px;
+        --radius-lg: 28px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --container: 1120px;
+
+        --badge-success: rgba(81, 255, 167, 0.2);
+        --badge-warning: rgba(255, 214, 64, 0.2);
+        --badge-risk: rgba(255, 120, 120, 0.2);
+
+        --font-heading: "Anton", sans-serif;
+        --font-body: "Proxima Nova", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .title,
+      .panel-title {
+        font-family: var(--font-heading);
+        font-weight: 400;
+      }
+
+      .page {
+        padding: 28px 24px 64px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        display: grid;
+        gap: 20px;
+      }
+
+      .header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .title {
+        font-size: 54px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 520px;
+        font-size: 14px;
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: rgba(0, 0, 0, 0.92);
+        border-color: transparent;
+      }
+
+      .button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.03);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-inner {
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .panel {
+        grid-column: span 12;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table th,
+      .table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: left;
+      }
+
+      .table th {
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+      }
+
+      .table td {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.82);
+        background: rgba(0, 0, 0, 0.16);
+      }
+
+      .badge.success {
+        background: var(--badge-success);
+        border-color: rgba(81, 255, 167, 0.4);
+      }
+
+      .badge.warning {
+        background: var(--badge-warning);
+        border-color: rgba(255, 214, 64, 0.4);
+      }
+
+      .badge.risk {
+        background: var(--badge-risk);
+        border-color: rgba(255, 120, 120, 0.4);
+      }
+
+      @media (max-width: 960px) {
+        .title {
+          font-size: 42px;
+        }
+
+        .table th,
+        .table td {
+          padding: 12px 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="container">
+        <header class="header">
+          <div>
+            <div class="title">Dashboard</div>
+            <div class="subtitle">
+              Track exams, monitor upcoming windows, and review past performance from a single view.
+            </div>
+          </div>
+          <div>
+            <a class="button" href="login.html">Logout</a>
+          </div>
+        </header>
+
+        <section class="card panel" aria-label="Available exams">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Available Exams</div>
+              <div class="muted">Only exams currently active are shown here.</div>
+            </div>
+          </div>
+          <div style="overflow:auto;">
+            <table class="table" role="table">
+              <thead>
+                <tr>
+                  <th scope="col">Exam</th>
+                  <th scope="col">Window</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" style="text-align:right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="active-exams-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card panel" aria-label="Upcoming exams">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Upcoming Exams</div>
+              <div class="muted">Countdowns update every second.</div>
+            </div>
+          </div>
+          <div style="overflow:auto;">
+            <table class="table" role="table">
+              <thead>
+                <tr>
+                  <th scope="col">Exam</th>
+                  <th scope="col">Starts</th>
+                  <th scope="col">Countdown</th>
+                </tr>
+              </thead>
+              <tbody id="upcoming-exams-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card panel" aria-label="Past exams">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Past Exams</div>
+              <div class="muted">Scores and integrity badges from completed exams.</div>
+            </div>
+          </div>
+          <div style="overflow:auto;">
+            <table class="table" role="table">
+              <thead>
+                <tr>
+                  <th scope="col">Exam</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Integrity</th>
+                </tr>
+              </thead>
+              <tbody id="past-exams-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      (() => {
+        if (!window.Morpheus.requireAuth("student")) return;
+
+        const activeBody = document.getElementById("active-exams-body");
+        const nameTarget = document.querySelector(".title");
+        const logoutButton = document.querySelector('a.button[href="login.html"]');
+
+        const setName = async () => {
+          const user = window.Morpheus.getUser();
+          if (user?.full_name) {
+            nameTarget.textContent = user.full_name;
+            return;
+          }
+          try {
+            const me = await window.Morpheus.getMe();
+            if (me?.full_name) {
+              nameTarget.textContent = me.full_name;
+              window.Morpheus.setUser({ id: me.id, role: me.role, full_name: me.full_name });
+            }
+          } catch {
+            // keep existing title if name lookup fails
+          }
+        };
+
+        const renderEmpty = (message) => {
+          activeBody.innerHTML = `
+            <tr>
+              <td colspan="4" class="muted">${message}</td>
+            </tr>
+          `;
+        };
+
+        const renderExams = (exams) => {
+          if (!Array.isArray(exams) || exams.length === 0) {
+            renderEmpty("No exams available right now.");
+            return;
+          }
+
+          activeBody.innerHTML = exams
+            .map((exam) => {
+              const questionCount = exam.question_count ?? exam.questions_count ?? "—";
+              return `
+                <tr>
+                  <td>
+                    <div style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: rgba(255,255,255,0.78);">${exam.id}</div>
+                    <div style="margin-top: 6px; font-size: 14px;">${exam.title}</div>
+                  </td>
+                  <td>
+                    <div class="muted">Type: ${exam.type}</div>
+                    <div class="muted" style="margin-top: 6px;">Duration: ${exam.duration_minutes} mins</div>
+                    <div class="muted" style="margin-top: 6px;">Questions: ${questionCount}</div>
+                  </td>
+                  <td><span class="badge success">Active</span></td>
+                  <td style="text-align:right;">
+                    <button class="button primary" data-exam-id="${exam.id}">Start Exam</button>
+                  </td>
+                </tr>
+              `;
+            })
+            .join("");
+
+          activeBody.querySelectorAll("button[data-exam-id]").forEach((button) => {
+            button.addEventListener("click", () => {
+              const examId = button.getAttribute("data-exam-id");
+              if (examId) {
+                sessionStorage.setItem("morpheus_exam_id", examId);
+              }
+              window.location.href = `pre-exam-lobby.html?exam_id=${examId}`;
+            });
+          });
+        };
+
+        const loadExams = async () => {
+          try {
+            const exams = await window.Morpheus.getAvailableExams();
+            renderExams(exams);
+          } catch (error) {
+            renderEmpty(error?.message || "Failed to load exams.");
+          }
+        };
+
+        if (logoutButton) {
+          logoutButton.addEventListener("click", (event) => {
+            event.preventDefault();
+            window.Morpheus.clearToken();
+            window.location.href = "login.html";
+          });
+        }
+
+        setName();
+        loadExams();
+      })();
+    </script>
+  </body>
+</html>

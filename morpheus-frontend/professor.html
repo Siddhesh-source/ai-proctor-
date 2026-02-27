@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professor Dashboard</title>
+    <meta http-equiv="refresh" content="0; url=faculty.html" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #d7ff45;
+        --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+        --radius: 20px;
+        --radius-lg: 28px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --container: 1120px;
+
+        --badge-upcoming: rgba(0, 214, 255, 0.14);
+        --badge-live: rgba(215, 255, 69, 0.14);
+        --badge-ended: rgba(255, 120, 120, 0.14);
+
+        --font-heading: "Anton", sans-serif;
+        --font-body: "Proxima Nova", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .title,
+      .metric-value,
+      .panel-title {
+        font-family: var(--font-heading);
+        font-weight: 400;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 3px 3px;
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+      }
+
+      .page {
+        padding: 28px 24px 64px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .nav {
+        position: sticky;
+        top: 16px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(10, 10, 12, 0.55);
+        backdrop-filter: blur(14px);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 12px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .logo {
+        font-family: "Anton", sans-serif;
+        font-size: 28px;
+        letter-spacing: 0.2em;
+      }
+
+      .logo a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 18px;
+        list-style: none;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .nav-links a {
+        color: var(--muted);
+        text-decoration: none;
+        transition: color 200ms var(--ease);
+      }
+
+      .nav-links a:hover {
+        color: var(--text);
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: rgba(0, 0, 0, 0.92);
+        border-color: transparent;
+      }
+
+      .header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding-top: 8px;
+      }
+
+      .title {
+        font-weight: 400;
+        font-size: 56px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 520px;
+        font-size: 14px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.03);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-inner {
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .metric {
+        grid-column: span 4;
+        min-height: 120px;
+      }
+
+      .metric-label {
+        color: rgba(255, 255, 255, 0.78);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+      }
+
+      .metric-value {
+        font-weight: 400;
+        font-size: 54px;
+        letter-spacing: 0.04em;
+        line-height: 1;
+      }
+
+      .metric-sub {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .panel {
+        grid-column: span 12;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .quick-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .list-controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .chip-group {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.12);
+      }
+
+      .chip {
+        border: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.72);
+        padding: 10px 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        cursor: pointer;
+        transition: background 220ms var(--ease), color 220ms var(--ease);
+      }
+
+      .chip[aria-pressed="true"] {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .control-input,
+      .control-select {
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.14);
+        color: rgba(255, 255, 255, 0.9);
+        padding: 10px 12px;
+        font-size: 12px;
+        outline: none;
+        transition: border-color 220ms var(--ease), background 220ms var(--ease);
+        min-height: 36px;
+      }
+
+      .control-input:focus,
+      .control-select:focus {
+        border-color: var(--border-strong);
+        background: rgba(0, 0, 0, 0.22);
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .button.small {
+        padding: 9px 12px;
+        letter-spacing: 0.08em;
+      }
+
+      .button.danger {
+        border-color: rgba(255, 120, 120, 0.35);
+        background: rgba(255, 120, 120, 0.12);
+      }
+
+      .button:disabled {
+        opacity: 0.62;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table th,
+      .table td {
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .table th {
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+      }
+
+      .table td {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.82);
+        background: rgba(0, 0, 0, 0.16);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .badge.upcoming {
+        border-color: rgba(0, 214, 255, 0.35);
+        background: var(--badge-upcoming);
+      }
+
+      .badge.upcoming .dot {
+        background: rgba(0, 214, 255, 0.95);
+        box-shadow: 0 0 0 4px rgba(0, 214, 255, 0.14);
+      }
+
+      .badge.live {
+        border-color: rgba(215, 255, 69, 0.35);
+        background: var(--badge-live);
+      }
+
+      .badge.live .dot {
+        background: rgba(215, 255, 69, 0.95);
+        box-shadow: 0 0 0 4px rgba(215, 255, 69, 0.14);
+      }
+
+      .badge.ended {
+        border-color: rgba(255, 120, 120, 0.35);
+        background: var(--badge-ended);
+      }
+
+      .badge.ended .dot {
+        background: rgba(255, 120, 120, 0.95);
+        box-shadow: 0 0 0 4px rgba(255, 120, 120, 0.14);
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 960px) {
+        .metric {
+          grid-column: span 12;
+        }
+
+        .title {
+          font-size: 44px;
+        }
+
+        .table th,
+        .table td {
+          padding: 12px 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="container">
+        <header class="header" id="home">
+          <div>
+            <div class="title">Dashboard</div>
+            <div class="subtitle">
+              Overview of your exams, student participation, and live sessions. Use quick actions to create,
+              monitor, and review results.
+            </div>
+          </div>
+          <div class="quick-actions">
+            <a class="button primary" href="create-exam.html">Create Exam</a>
+            <a class="button" href="#results">View Results</a>
+            <a class="button" href="#monitor">Monitor Live</a>
+            <button class="button" id="logout-button" type="button">Logout</button>
+          </div>
+        </header>
+
+        <section class="grid" aria-label="Summary metrics">
+          <div class="card metric">
+            <div class="card-inner">
+              <div class="metric-label">Total Exams Created</div>
+              <div id="metric-exams" class="metric-value">—</div>
+              <div class="metric-sub">All-time exam count in your account.</div>
+            </div>
+          </div>
+
+          <div class="card metric">
+            <div class="card-inner">
+              <div class="metric-label">Total Students Examined</div>
+              <div id="metric-students" class="metric-value">—</div>
+              <div class="metric-sub">Unique students who attempted your exams.</div>
+            </div>
+          </div>
+
+          <div class="card metric">
+            <div class="card-inner">
+              <div class="metric-label">Active Exams Right Now</div>
+              <div id="metric-live" class="metric-value">—</div>
+              <div class="metric-sub">Live exams currently running.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card panel" id="exams" aria-label="All exams">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">All Exams</div>
+              <div class="muted">Upcoming, live, and ended exams with status.</div>
+            </div>
+            <div class="list-controls" aria-label="Exam list controls">
+              <div class="chip-group" role="group" aria-label="Filter by status">
+                <button class="chip" type="button" data-filter="all" aria-pressed="true">All</button>
+                <button class="chip" type="button" data-filter="active" aria-pressed="false">Active</button>
+                <button class="chip" type="button" data-filter="upcoming" aria-pressed="false">Upcoming</button>
+                <button class="chip" type="button" data-filter="ended" aria-pressed="false">Ended</button>
+              </div>
+              <input id="exam-search" class="control-input" type="search" placeholder="Search by title" />
+              <select id="exam-sort" class="control-select" aria-label="Sort exams">
+                <option value="date">Sort: Date</option>
+                <option value="students">Sort: Student count</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="overflow:auto;">
+            <table class="table" role="table">
+              <thead>
+                <tr>
+                  <th scope="col">Exam</th>
+                  <th scope="col">Schedule</th>
+                  <th scope="col">Students</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="exams-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="grid" aria-label="Quick sections">
+          <div class="card panel" id="create" style="grid-column: span 12;">
+            <div class="panel-head">
+              <div class="panel-title">Create Exam</div>
+              <div class="muted">Quick action placeholder.</div>
+            </div>
+            <div class="card-inner">
+              <div class="muted">Hook this button up to your create-exam flow when ready.</div>
+            </div>
+          </div>
+
+          <div class="card panel" id="results" style="grid-column: span 12;">
+            <div class="panel-head">
+              <div class="panel-title">View Results</div>
+              <div class="muted">Quick action placeholder.</div>
+            </div>
+            <div class="card-inner">
+              <div class="muted">Hook this section up to your results page/endpoint when ready.</div>
+            </div>
+          </div>
+
+          <div class="card panel" id="monitor" style="grid-column: span 12;">
+            <div class="panel-head">
+              <div class="panel-title">Monitor Live</div>
+              <div class="muted">Quick action placeholder.</div>
+            </div>
+            <div class="card-inner">
+              <div class="muted">Hook this section up to your live monitor page/endpoint when ready.</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      const start = () => {
+        if (!Morpheus.requireAuth("professor")) {
+          return;
+        }
+
+        const els = {
+        metricExams: document.getElementById("metric-exams"),
+        metricStudents: document.getElementById("metric-students"),
+        metricLive: document.getElementById("metric-live"),
+        tbody: document.getElementById("exams-body"),
+        search: document.getElementById("exam-search"),
+        sort: document.getElementById("exam-sort"),
+        filterButtons: Array.from(document.querySelectorAll("[data-filter]")),
+        title: document.querySelector(".title"),
+        logoutButton: document.getElementById("logout-button"),
+        };
+
+        const state = {
+        exams: [],
+        filter: "all",
+        search: "",
+        sort: "date",
+        };
+
+        const statusLabel = {
+        upcoming: "Upcoming",
+        live: "Live",
+        ended: "Ended",
+        };
+
+        const escapeHtml = (str) => {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+        };
+
+        const parseDate = (value) => {
+        if (!value) return NaN;
+        if (typeof value === "string") {
+          const normalized = value.includes("T") ? value : value.replace(" ", "T");
+          const t = new Date(normalized).getTime();
+          if (Number.isFinite(t)) return t;
+        }
+        const t = new Date(value).getTime();
+        return Number.isFinite(t) ? t : NaN;
+        };
+
+        const formatDate = (value) => {
+        const parsed = parseDate(value);
+        if (!Number.isFinite(parsed)) return "—";
+        return new Date(parsed).toLocaleString();
+        };
+
+        const resolveStatus = (exam) => {
+        const start = parseDate(exam.start_time || exam.startsAt);
+        const end = parseDate(exam.end_time || exam.endsAt);
+        const now = Date.now();
+        if (Number.isFinite(start) && now < start) return "upcoming";
+        if (Number.isFinite(end) && now > end) return "ended";
+        return "live";
+        };
+
+        const normalizeExam = (exam, studentsExamined) => {
+        return {
+          id: exam.id,
+          title: exam.title,
+          type: exam.type,
+          startsAt: exam.start_time || exam.startsAt,
+          endsAt: exam.end_time || exam.endsAt,
+          studentsExamined: studentsExamined ?? 0,
+          status: resolveStatus(exam),
+        };
+        };
+
+        const computeTotals = (exams) => {
+        const totalExams = exams.length;
+        const totalStudents = exams.reduce((sum, ex) => sum + (ex.studentsExamined || 0), 0);
+        const liveCount = exams.filter((ex) => ex.status === "live").length;
+        return { totalExams, totalStudents, liveCount };
+        };
+
+        const renderBadge = (status) => {
+        const safe = statusLabel[status] ? status : "upcoming";
+        return `
+          <span class="badge ${safe}">
+            <span class="dot" aria-hidden="true"></span>
+            ${statusLabel[safe]}
+          </span>
+        `;
+        };
+
+        const matchesFilter = (exam) => {
+        if (state.filter === "all") return true;
+        if (state.filter === "active") return exam.status === "live";
+        return exam.status === state.filter;
+        };
+
+        const matchesSearch = (exam) => {
+        const q = (state.search || "").trim().toLowerCase();
+        if (!q) return true;
+        return (exam.title || "").toLowerCase().includes(q);
+        };
+
+        const sortExams = (a, b) => {
+        if (state.sort === "students") {
+          return (b.studentsExamined || 0) - (a.studentsExamined || 0);
+        }
+        const aStart = parseDate(a.startsAt);
+        const bStart = parseDate(b.startsAt);
+        if (!Number.isFinite(aStart) && !Number.isFinite(bStart)) return 0;
+        if (!Number.isFinite(aStart)) return 1;
+        if (!Number.isFinite(bStart)) return -1;
+        return bStart - aStart;
+        };
+
+        const computeView = () => {
+        return [...state.exams].filter(matchesFilter).filter(matchesSearch).sort(sortExams);
+        };
+
+        const renderRow = (exam) => {
+        return `
+          <tr>
+            <td>
+              <div style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: rgba(255,255,255,0.78);">${escapeHtml(exam.type || "exam")}</div>
+              <div style="margin-top: 6px; font-size: 14px;">${escapeHtml(exam.title)}</div>
+            </td>
+            <td>
+              <div class="muted">Start: ${escapeHtml(formatDate(exam.startsAt))}</div>
+              <div class="muted" style="margin-top: 6px;">End: ${escapeHtml(formatDate(exam.endsAt))}</div>
+            </td>
+            <td>${exam.studentsExamined ?? 0}</td>
+            <td>${renderBadge(exam.status)}</td>
+            <td style="text-align:right;">
+              <div class="row-actions">
+                <button class="button small" type="button" data-action="results" data-id="${escapeHtml(exam.id)}">View Results</button>
+                <button class="button small" type="button" data-action="monitor" data-id="${escapeHtml(exam.id)}">Monitor Live</button>
+              </div>
+            </td>
+          </tr>
+        `;
+        };
+
+        const renderTable = () => {
+        const view = computeView();
+        if (!view.length) {
+          els.tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="muted">No exams found.</td>
+            </tr>
+          `;
+          return;
+        }
+        els.tbody.innerHTML = view.map(renderRow).join("");
+        };
+
+        const renderMetrics = () => {
+        const { totalExams, totalStudents, liveCount } = computeTotals(state.exams);
+        els.metricExams.textContent = totalExams;
+        els.metricStudents.textContent = totalStudents;
+        els.metricLive.textContent = liveCount;
+        };
+
+        const setFilter = (value) => {
+        state.filter = value;
+        els.filterButtons.forEach((btn) => {
+          const pressed = btn.getAttribute("data-filter") === value;
+          btn.setAttribute("aria-pressed", pressed ? "true" : "false");
+        });
+        renderTable();
+        };
+
+        const loadExams = async () => {
+        let exams = [];
+        try {
+          exams = await Morpheus.getProfessorExams();
+        } catch (error) {
+          exams = [];
+        }
+
+        const enriched = await Promise.all(
+          (exams || []).map(async (exam) => {
+            let results = [];
+            try {
+              results = await Morpheus.getExamResults(exam.id);
+            } catch (error) {
+              results = [];
+            }
+            return normalizeExam(exam, results.length);
+          }),
+        );
+
+        state.exams = enriched;
+        renderMetrics();
+        renderTable();
+        };
+
+        const init = async () => {
+        let user = Morpheus.getUser();
+        if (!user) {
+          try {
+            user = await Morpheus.getMe();
+          } catch (error) {
+            user = null;
+          }
+        }
+        if (user?.full_name && els.title) {
+          els.title.textContent = `${user.full_name} Dashboard`;
+        }
+
+        if (els.logoutButton) {
+          els.logoutButton.addEventListener("click", () => {
+            Morpheus.clearToken();
+            window.location.href = "login.html";
+          });
+        }
+
+        renderMetrics();
+        renderTable();
+
+        els.filterButtons.forEach((btn) => {
+          btn.addEventListener("click", () => setFilter(btn.getAttribute("data-filter")));
+        });
+
+        els.search.addEventListener("input", () => {
+          state.search = els.search.value || "";
+          renderTable();
+        });
+
+        els.sort.addEventListener("change", () => {
+          state.sort = els.sort.value || "date";
+          renderTable();
+        });
+
+        els.tbody.addEventListener("click", (e) => {
+          const btn = e.target.closest("button");
+          if (!btn) return;
+          const action = btn.getAttribute("data-action");
+          const id = btn.getAttribute("data-id");
+          if (!action || !id) return;
+          if (action === "results") {
+            window.location.href = `result.html?exam_id=${encodeURIComponent(id)}`;
+            return;
+          }
+          if (action === "monitor") {
+            window.location.href = `live-monitor.html?exam_id=${encodeURIComponent(id)}`;
+          }
+        });
+
+        await loadExams();
+        };
+
+        init();
+      };
+
+      start();
+    </script>
+  </body>
+</html>

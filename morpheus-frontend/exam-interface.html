@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exam Interface</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --panel: rgba(255, 255, 255, 0.03);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #d7ff45;
+        --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+        --radius: 16px;
+        --radius-lg: 22px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --sidebar: 360px;
+
+        --status-saved: #44d17f;
+        --status-review: #5aa6ff;
+        --status-save-review: #ffb562;
+        --status-clear: #ffffff;
+        --status-current: #5aa6ff;
+
+        --font-heading: "Anton", sans-serif;
+        --font-body: "Proxima Nova", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .secure-zone {
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
+      }
+
+      .secure-zone img,
+      .secure-zone video,
+      .secure-zone canvas {
+        pointer-events: none;
+      }
+
+      #anti-screenshot-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+
+      #anti-screenshot-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .title {
+        font-family: var(--font-heading);
+        font-weight: 400;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(10, 10, 12, 0.6);
+        backdrop-filter: blur(12px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .topbar-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 30px;
+      }
+
+      .timer-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .org-logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 1px solid var(--border);
+      }
+
+      .org-name {
+        font-size: 18px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .title {
+        font-size: 28px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .subbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(10, 10, 12, 0.45);
+        backdrop-filter: blur(12px);
+      }
+
+      .subbar-left {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .subbar-left strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .subbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .subbar-select {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.35);
+        color: var(--text);
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      .topbar-meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .pill {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      .pill.accent {
+        border-color: rgba(81, 255, 167, 0.4);
+        background: rgba(81, 255, 167, 0.2);
+      }
+
+      .timer-pill {
+        min-width: 190px;
+        border-radius: 999px;
+        border: 1px solid var(--border-strong);
+        padding: 14px 22px;
+        text-align: center;
+        letter-spacing: 0.12em;
+        font-size: 14px;
+        text-transform: uppercase;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: rgba(0, 0, 0, 0.92);
+        border-color: transparent;
+      }
+
+      .button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 0;
+      }
+
+      .sidebar {
+        border-left: 1px solid var(--border);
+        padding: 20px;
+        background: rgba(10, 10, 12, 0.55);
+        display: grid;
+        gap: 18px;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 18px;
+        font-size: 12px;
+        color: var(--muted);
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      .question-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
+
+      .question-cell {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 10px 0;
+        text-align: center;
+        font-size: 12px;
+        cursor: pointer;
+        transition: transform 160ms var(--ease), border-color 160ms var(--ease);
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .question-cell:hover {
+        transform: translateY(-2px);
+        border-color: var(--border-strong);
+      }
+
+      .question-cell.saved {
+        background: rgba(68, 209, 127, 0.22);
+        border-color: rgba(68, 209, 127, 0.7);
+        color: #ccffe6;
+      }
+
+      .question-cell.review {
+        background: rgba(90, 166, 255, 0.22);
+        border-color: rgba(90, 166, 255, 0.7);
+        color: #d9ecff;
+      }
+
+      .question-cell.save-review {
+        background: rgba(255, 181, 98, 0.22);
+        border-color: rgba(255, 181, 98, 0.75);
+        color: #ffe5c9;
+      }
+
+      .question-cell.current {
+        border-color: rgba(90, 166, 255, 0.8);
+        box-shadow: 0 0 0 2px rgba(90, 166, 255, 0.2);
+      }
+
+      .question-cell.clear {
+        background: #ffffff;
+        border-color: #ffffff;
+        color: #111111;
+      }
+
+      .main {
+        padding: 24px 28px;
+        display: grid;
+        gap: 20px;
+      }
+
+      .question-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 20px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .question-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .question-meta h2 {
+        font-size: 20px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .question-meta .meta-chip {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .question-text {
+        font-size: 16px;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .answer-area {
+        display: grid;
+        gap: 12px;
+      }
+
+      .option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      .option.subjective {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .option input {
+        accent-color: var(--accent);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--text);
+        padding: 12px 14px;
+        resize: vertical;
+        font-family: var(--font-body);
+      }
+
+      .code-area {
+        font-family: "Fira Code", "Courier New", monospace;
+      }
+
+      .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .button.action-green {
+        background: rgba(68, 209, 127, 0.85);
+        border-color: rgba(68, 209, 127, 0.9);
+        color: #0f1b14;
+      }
+
+      .button.action-blue {
+        background: rgba(90, 166, 255, 0.85);
+        border-color: rgba(90, 166, 255, 0.9);
+        color: #081a2c;
+      }
+
+      .button.action-orange {
+        background: rgba(255, 181, 98, 0.88);
+        border-color: rgba(255, 181, 98, 0.95);
+        color: #2b1b06;
+      }
+
+      .button.action-clear {
+        background: #ffffff;
+        border-color: #ffffff;
+        color: #111111;
+      }
+
+      .warning {
+        display: none;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        z-index: 30;
+      }
+
+      .modal-backdrop.show {
+        display: flex;
+      }
+
+      .modal {
+        max-width: 480px;
+        width: 100%;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: rgba(15, 15, 18, 0.95);
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .modal h3 {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 18px;
+      }
+
+      .modal ul {
+        list-style: none;
+        display: grid;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
+      @media (max-width: 1024px) {
+        .content {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          border-left: none;
+          border-top: 1px solid var(--border);
+        }
+
+        .question-grid {
+          grid-template-columns: repeat(8, 1fr);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .question-grid {
+          grid-template-columns: repeat(6, 1fr);
+        }
+
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .subbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body class="secure-zone">
+    <div id="anti-screenshot-overlay">Recording in progress</div>
+    <div class="layout">
+      <header class="topbar">
+        <div class="topbar-left">
+          <img class="org-logo" src="vit.png" alt="Organisation logo" />
+          <div class="org-name" id="org-name">VISHWAKARMA INSTITUTE OF TECHNOLOGY,PUNE</div>
+        </div>
+        <div class="topbar-right">
+          <button id="submit-exam" class="button primary" type="button">Submit Exam</button>
+          <div class="timer-stack">
+            <span class="timer-pill" id="timer">01:22:44</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="subbar">
+        <div class="subbar-left">
+          <span>Candidate Name: <strong id="candidate-name">[Your Name]</strong></span>
+          <span>Exam Name: <strong id="exam-name">JEE-Main</strong></span>
+          <span>Subject Name: <strong id="subject-name">Mathematics</strong></span>
+          <span>Shift: <strong id="shift-info">4/06/361 BTECH 7th Jan 2020, Shift 1</strong></span>
+        </div>
+        <div class="subbar-right">
+          <span>Language</span>
+          <select class="subbar-select" id="language-select">
+            <option>English</option>
+            <option>Hindi</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="content">
+        <main class="main">
+          <div class="question-card">
+            <div class="question-meta">
+              <h2 id="question-title">Question 1</h2>
+              <span class="meta-chip" id="question-status">Not Saved</span>
+            </div>
+            <div id="question-text" class="question-text"></div>
+            <div id="answer-area" class="answer-area"></div>
+          </div>
+
+          <div class="action-buttons">
+            <button id="save-next" class="button action-green" type="button">Save and Next</button>
+            <button id="review-next" class="button action-blue" type="button">Mark for Review and Next</button>
+            <button id="save-review" class="button action-orange" type="button">Save and Mark for Review</button>
+            <button id="clear-answer" class="button action-clear" type="button">Clear</button>
+          </div>
+        </main>
+
+        <aside class="sidebar">
+          <div class="legend">
+            <span><span class="legend-dot" style="background: var(--status-saved);"></span>Saved</span>
+            <span><span class="legend-dot" style="background: var(--status-review);"></span>Mark for review</span>
+            <span><span class="legend-dot" style="background: var(--status-save-review);"></span>Save &amp; review</span>
+            <span><span class="legend-dot" style="background: var(--status-clear); border: 1px solid #ddd;"></span>Clear</span>
+          </div>
+          <div id="question-grid" class="question-grid"></div>
+        </aside>
+      </div>
+    </div>
+
+    <div id="submit-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <h3>Confirm Submission</h3>
+        <p class="muted">Review your progress before submitting.</p>
+        <ul id="summary-list"></ul>
+        <div class="modal-actions">
+          <button id="cancel-submit" class="button" type="button">Continue Exam</button>
+          <button id="confirm-submit" class="button primary" type="button">Submit Now</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      (() => {
+        if (!window.Morpheus.requireAuth("student")) return;
+
+        const exam_id =
+          new URLSearchParams(window.location.search).get("exam_id") ||
+          sessionStorage.getItem("morpheus_exam_id");
+        const session_id = sessionStorage.getItem("morpheus_session_id");
+        if (!session_id) {
+          window.location.href = "student.html";
+          return;
+        }
+
+        let questions = [];
+        let currentIndex = 0;
+        let answers = {};
+        let saveTimer = null;
+        let remainingSeconds = 0;
+        let timerHandle = null;
+        let finishing = false;
+
+        const els = {
+          timer: document.getElementById("timer"),
+          grid: document.getElementById("question-grid"),
+          questionTitle: document.getElementById("question-title"),
+          questionText: document.getElementById("question-text"),
+          answerArea: document.getElementById("answer-area"),
+          questionStatus: document.getElementById("question-status"),
+          saveNext: document.getElementById("save-next"),
+          reviewNext: document.getElementById("review-next"),
+          saveReview: document.getElementById("save-review"),
+          clearAnswer: document.getElementById("clear-answer"),
+          submit: document.getElementById("submit-exam"),
+          modal: document.getElementById("submit-modal"),
+          summaryList: document.getElementById("summary-list"),
+          cancelSubmit: document.getElementById("cancel-submit"),
+          confirmSubmit: document.getElementById("confirm-submit"),
+        };
+
+        if (!exam_id) {
+          if (els.questionText) {
+            els.questionText.textContent = "Invalid exam_id";
+          }
+          return;
+        }
+
+        const renderGrid = () => {
+          if (!els.grid) return;
+          els.grid.innerHTML = questions
+            .map((question, index) => {
+              const isCurrent = index === currentIndex;
+              const saved = Boolean(answers[question.id]);
+              const classes = ["question-cell", saved ? "saved" : "", isCurrent ? "current" : ""]
+                .filter(Boolean)
+                .join(" ");
+              return `<button class="${classes}" type="button" data-index="${index}">${index + 1}</button>`;
+            })
+            .join("");
+        };
+
+        const getOptionsArray = (options) => {
+          if (!options) return [];
+          if (Array.isArray(options)) return options;
+          if (typeof options === "object") {
+            return Object.entries(options).map(([key, value]) => ({ key, value }));
+          }
+          return [];
+        };
+
+        const renderQuestion = (index) => {
+          if (!questions.length || index < 0 || index >= questions.length) return;
+          currentIndex = index;
+          const question = questions[index];
+          if (els.questionTitle) {
+            els.questionTitle.textContent = `Question ${index + 1}`;
+          }
+          if (els.questionText) {
+            els.questionText.textContent = question.text || "";
+          }
+          if (els.questionStatus) {
+            els.questionStatus.textContent = answers[question.id] ? "Saved" : "Not Saved";
+          }
+
+          if (els.answerArea) {
+            if (question.type === "mcq") {
+              const selected = answers[question.id] || "";
+              const options = getOptionsArray(question.options);
+              els.answerArea.innerHTML = options
+                .map((opt, idx) => {
+                  const label = typeof opt === "string" ? opt : opt.value;
+                  const value = typeof opt === "string" ? opt : opt.value;
+                  const prefix = typeof opt === "string" ? String.fromCharCode(65 + idx) : opt.key;
+                  return `
+                    <label class="option">
+                      <input
+                        type="radio"
+                        name="question-${question.id}"
+                        value="${value}"
+                        ${selected === value ? "checked" : ""}
+                      />
+                      <span>${prefix}. ${label}</span>
+                    </label>
+                  `;
+                })
+                .join("");
+            } else {
+              const existing = answers[question.id] || "";
+              const textareaClass = question.type === "code" ? "code-area" : "";
+              els.answerArea.innerHTML = `
+                <label class="option subjective">
+                  <span>Answer</span>
+                  <textarea
+                    class="${textareaClass}"
+                    name="question-${question.id}"
+                    placeholder="Type your answer"
+                    spellcheck="false"
+                  >${existing}</textarea>
+                </label>
+              `;
+            }
+          }
+
+          renderGrid();
+        };
+
+        const getCurrentAnswer = () => {
+          const question = questions[currentIndex];
+          if (!question || !els.answerArea) return "";
+          if (question.type === "mcq") {
+            const checked = els.answerArea.querySelector("input[type='radio']:checked");
+            return checked ? checked.value : "";
+          }
+          const textarea = els.answerArea.querySelector("textarea");
+          return textarea ? textarea.value.trim() : "";
+        };
+
+        const setSavingStatus = (text) => {
+          if (els.questionStatus) {
+            els.questionStatus.textContent = text;
+          }
+        };
+
+        const scheduleSave = (questionId, answer) => {
+          if (saveTimer) window.clearTimeout(saveTimer);
+          setSavingStatus("Saving...");
+          saveTimer = window.setTimeout(async () => {
+            try {
+              await window.Morpheus.submitAnswer(exam_id, session_id, questionId, answer);
+              setSavingStatus("Saved");
+            } catch {
+              setSavingStatus("Not Saved");
+            }
+          }, 1000);
+        };
+
+        const handleAnswerChange = () => {
+          const question = questions[currentIndex];
+          if (!question) return;
+          const value = getCurrentAnswer();
+          if (value) {
+            answers[question.id] = value;
+          } else {
+            delete answers[question.id];
+          }
+          renderGrid();
+          scheduleSave(question.id, value || "");
+        };
+
+        const gotoQuestion = (index) => {
+          if (index < 0 || index >= questions.length) return;
+          renderQuestion(index);
+        };
+
+        const updateTimer = () => {
+          if (remainingSeconds <= 0) {
+            if (timerHandle) window.clearInterval(timerHandle);
+            finishExam(true);
+            return;
+          }
+          remainingSeconds -= 1;
+          const hours = String(Math.floor(remainingSeconds / 3600)).padStart(2, "0");
+          const minutes = String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, "0");
+          const seconds = String(remainingSeconds % 60).padStart(2, "0");
+          if (els.timer) {
+            els.timer.textContent = `${hours}:${minutes}:${seconds}`;
+          }
+        };
+
+        const openModal = () => {
+          if (!els.modal) return false;
+          if (els.summaryList) {
+            const answered = Object.keys(answers).length;
+            const unanswered = questions.length - answered;
+            els.summaryList.innerHTML = `
+              <li>Answered: <strong>${answered}</strong></li>
+              <li>Unanswered: <strong>${unanswered}</strong></li>
+            `;
+          }
+          els.modal.classList.add("show");
+          return true;
+        };
+
+        const closeModal = () => {
+          if (els.modal) {
+            els.modal.classList.remove("show");
+          }
+        };
+
+        const finishExam = async (force = false) => {
+          if (finishing) return;
+          if (!force) {
+            const modalShown = openModal();
+            if (modalShown) return;
+            if (!window.confirm("Submit exam now?")) return;
+          }
+          finishing = true;
+          try {
+            await window.Morpheus.finishExam(exam_id, session_id);
+            window.location.href = `result.html?session_id=${session_id}`;
+          } catch {
+            finishing = false;
+          }
+        };
+
+        document.addEventListener("contextmenu", (e) => e.preventDefault());
+        document.addEventListener("copy", (e) => e.preventDefault());
+        document.addEventListener("cut", (e) => e.preventDefault());
+        document.addEventListener("paste", (e) => e.preventDefault());
+        const overlay = document.getElementById("anti-screenshot-overlay");
+
+        const showOverlay = () => {
+          if (overlay) overlay.classList.add("show");
+        };
+
+        const hideOverlay = () => {
+          if (overlay) overlay.classList.remove("show");
+        };
+
+        const handleTabBlur = (reason) => {
+          showOverlay();
+          window.Morpheus
+            .sendRaf(session_id, 600)
+            .then((response) => {
+              if (response?.violation) {
+                showViolationToast("raf_tab_switch");
+              }
+            })
+            .catch(() => {});
+          window.Morpheus
+            .sendViolation(session_id, "screenshot_attempt", 0.6, { reason })
+            .catch(() => {});
+          showViolationToast("screenshot_attempt");
+        };
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            handleTabBlur("visibilitychange");
+          } else {
+            hideOverlay();
+          }
+        });
+
+        window.addEventListener("blur", () => handleTabBlur("blur"));
+        window.addEventListener("focus", hideOverlay);
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "PrintScreen") {
+            showOverlay();
+            window.Morpheus.sendViolation(session_id, "screenshot_attempt", 0.6, { key: "PrintScreen" }).catch(() => {});
+            showViolationToast("screenshot_attempt");
+            window.setTimeout(hideOverlay, 1500);
+          }
+          if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
+            showOverlay();
+            window.Morpheus.sendViolation(session_id, "screenshot_attempt", 0.6, { key: "Ctrl+Shift+S" }).catch(() => {});
+            showViolationToast("screenshot_attempt");
+            window.setTimeout(hideOverlay, 1500);
+          }
+        });
+
+        const showViolationToast = (violation) => {
+          const message =
+            {
+              phone_detected: "Phone detected",
+              gaze_away: "Please look at the screen",
+              raf_tab_switch: "Tab switch detected",
+              speech_detected: "Please maintain silence",
+              multiple_faces: "Multiple persons detected",
+              screenshot_attempt: "Screenshot attempt detected",
+            }[violation] || "Violation detected";
+          let toast = document.getElementById("violation-toast");
+          if (!toast) {
+            toast = document.createElement("div");
+            toast.id = "violation-toast";
+            toast.style.position = "fixed";
+            toast.style.right = "24px";
+            toast.style.bottom = "24px";
+            toast.style.background = "rgba(0,0,0,0.8)";
+            toast.style.border = "1px solid rgba(255,255,255,0.2)";
+            toast.style.color = "#fff";
+            toast.style.padding = "10px 14px";
+            toast.style.borderRadius = "10px";
+            toast.style.fontSize = "12px";
+            toast.style.zIndex = "40";
+            document.body.appendChild(toast);
+          }
+          toast.textContent = message;
+          toast.style.display = "block";
+          window.setTimeout(() => {
+            toast.style.display = "none";
+          }, 2500);
+        };
+
+        const showCriticalWarning = (message = "Integrity score critical") => {
+          let warning = document.getElementById("critical-warning");
+          if (!warning) {
+            warning = document.createElement("div");
+            warning.id = "critical-warning";
+            warning.style.position = "fixed";
+            warning.style.top = "16px";
+            warning.style.left = "50%";
+            warning.style.transform = "translateX(-50%)";
+            warning.style.background = "rgba(255,120,120,0.9)";
+            warning.style.color = "#000";
+            warning.style.padding = "8px 14px";
+            warning.style.borderRadius = "999px";
+            warning.style.fontSize = "12px";
+            warning.style.zIndex = "40";
+            document.body.appendChild(warning);
+          }
+          warning.textContent = message;
+        };
+
+        const handleCriticalIntegrity = async (score) => {
+          if (finishing) return;
+          if (score == null || score >= 30) return;
+          finishing = true;
+          showCriticalWarning("Integrity too low. Ending exam.");
+          try {
+            await window.Morpheus.finishExam(exam_id, session_id);
+          } catch (error) {
+            // ignore
+          }
+          window.location.href = `result.html?session_id=${encodeURIComponent(session_id)}`;
+        };
+
+        async function startProctoring(id) {
+          let videoEl = document.querySelector("video");
+          if (!videoEl) {
+            videoEl = document.createElement("video");
+            videoEl.autoplay = true;
+            videoEl.muted = true;
+            videoEl.playsInline = true;
+            videoEl.style.position = "fixed";
+            videoEl.style.width = "1px";
+            videoEl.style.height = "1px";
+            videoEl.style.opacity = "0";
+            document.body.appendChild(videoEl);
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+              videoEl.srcObject = stream;
+            } catch (error) {
+              // ignore camera errors
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = 320;
+          canvas.height = 240;
+          const ctx = canvas.getContext("2d");
+
+          window.setInterval(() => {
+            try {
+              if (!videoEl || videoEl.readyState < 2) return;
+              ctx.drawImage(videoEl, 0, 0, 320, 240);
+              const frame_base64 = canvas.toDataURL("image/jpeg", 0.5).split(",")[1];
+              window.Morpheus
+                .sendFrame(id, frame_base64)
+                .then((response) => {
+                  const violations = response?.violations || [];
+                  violations.forEach((violation) => showViolationToast(violation));
+                  if (response?.integrity_score != null) {
+                    handleCriticalIntegrity(response.integrity_score);
+                  }
+                })
+                .catch(() => {});
+            } catch (e) {
+              // ignore
+            }
+          }, 5000);
+
+          navigator.mediaDevices
+            .getUserMedia({ audio: true })
+            .then((stream) => {
+              const ctx2 = new AudioContext();
+              const analyser = ctx2.createAnalyser();
+              ctx2.createMediaStreamSource(stream).connect(analyser);
+              analyser.fftSize = 256;
+              const data = new Uint8Array(analyser.frequencyBinCount);
+              window.setInterval(() => {
+                analyser.getByteFrequencyData(data);
+                const voiceBand = Array.from(data.slice(4, 20));
+                const voice_energy =
+                  (voiceBand.reduce((a, b) => a + b, 0) / (voiceBand.length * 255)) * 100;
+                window.Morpheus
+                  .sendAudio(id, voice_energy)
+                  .then((response) => {
+                    if (response?.violation) {
+                      showViolationToast("speech_detected");
+                    }
+                  })
+                  .catch(() => {});
+              }, 5000);
+            })
+            .catch(() => {});
+
+          window.Morpheus.connectProctoringWS(id, (data) => {
+            const integrityEl =
+              document.querySelector("[data-integrity]") || document.getElementById("integrity-score");
+            if (integrityEl && data?.integrity_score != null) {
+              integrityEl.textContent = Math.round(data.integrity_score);
+            }
+
+            if (data?.violation) {
+              showViolationToast(data.violation);
+            }
+
+            if (data?.integrity_score != null) {
+              handleCriticalIntegrity(data.integrity_score);
+            }
+          });
+        }
+
+        const initTimer = () => {
+          const durationMinutes = 90;
+          remainingSeconds = durationMinutes * 60;
+          updateTimer();
+          timerHandle = window.setInterval(updateTimer, 1000);
+        };
+
+        const loadQuestions = async () => {
+          try {
+            const result = await window.Morpheus.getExamQuestions(exam_id);
+            questions = Array.isArray(result) ? result : [];
+            if (!questions.length) {
+              if (els.questionText) {
+                els.questionText.textContent = "No questions available.";
+              }
+              return;
+            }
+            renderQuestion(0);
+            renderGrid();
+            startProctoring(session_id);
+          } catch (error) {
+            if (els.questionText) {
+              els.questionText.textContent = error?.message || "Failed to load questions.";
+            }
+          }
+        };
+
+        if (els.grid) {
+          els.grid.addEventListener("click", (event) => {
+            const btn = event.target.closest("button[data-index]");
+            if (!btn) return;
+            gotoQuestion(Number(btn.dataset.index));
+          });
+        }
+
+        if (els.answerArea) {
+          els.answerArea.addEventListener("input", () => handleAnswerChange());
+          els.answerArea.addEventListener("change", () => handleAnswerChange());
+        }
+
+        if (els.saveNext) {
+          els.saveNext.addEventListener("click", () => {
+            const answer = getCurrentAnswer();
+            const question = questions[currentIndex];
+            if (question) {
+              answers[question.id] = answer;
+              scheduleSave(question.id, answer || "");
+            }
+            gotoQuestion(currentIndex + 1);
+          });
+        }
+
+        if (els.reviewNext) {
+          els.reviewNext.addEventListener("click", () => {
+            gotoQuestion(currentIndex + 1);
+          });
+        }
+
+        if (els.saveReview) {
+          els.saveReview.addEventListener("click", () => {
+            const answer = getCurrentAnswer();
+            const question = questions[currentIndex];
+            if (question) {
+              answers[question.id] = answer;
+              scheduleSave(question.id, answer || "");
+            }
+          });
+        }
+
+        if (els.clearAnswer) {
+          els.clearAnswer.addEventListener("click", () => {
+            const question = questions[currentIndex];
+            if (question) {
+              delete answers[question.id];
+              renderQuestion(currentIndex);
+            }
+          });
+        }
+
+        if (els.submit) {
+          els.submit.addEventListener("click", () => finishExam(false));
+        }
+        if (els.cancelSubmit) {
+          els.cancelSubmit.addEventListener("click", closeModal);
+        }
+        if (els.confirmSubmit) {
+          els.confirmSubmit.addEventListener("click", () => {
+            closeModal();
+            finishExam(true);
+          });
+        }
+
+        initTimer();
+        loadQuestions();
+      })();
+    </script>
+  </body>
+</html>

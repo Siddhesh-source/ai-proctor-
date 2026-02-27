@@ -67,7 +67,8 @@ async function apiCall(method, path, body = null, requiresAuth = true) {
 
   const options = {
     method,
-    headers
+    headers,
+    cache: 'no-store'
   };
 
   if (body !== null) {
@@ -212,7 +213,8 @@ async function getExamLogs(exam_id) {
 }
 
 async function getLiveFrame(session_id) {
-  return apiCall('GET', `/proctoring/session/${session_id}/frame`);
+  const stamp = Date.now();
+  return apiCall('GET', `/proctoring/session/${session_id}/frame?t=${stamp}`);
 }
 
 function connectProctoringWS(session_id, onMessage) {

@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Exam</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #d7ff45;
+        --danger: #ff7878;
+        --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+        --radius: 20px;
+        --radius-lg: 28px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --container: 1120px;
+        --font-heading: "Anton", sans-serif;
+        --font-body: "Proxima Nova", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 3px 3px;
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .title,
+      .panel-title,
+      .metric-value {
+        font-family: var(--font-heading);
+        font-weight: 400;
+      }
+
+      .page {
+        padding: 28px 24px 64px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero-head {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        position: relative;
+        padding-top: 6px;
+      }
+
+      .header-right {
+        position: absolute;
+        top: 0;
+        right: -340px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .profile-trigger-wrap {
+        position: relative;
+      }
+
+      .profile-trigger {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        padding: 2px;
+        background: linear-gradient(160deg, rgba(0, 200, 150, 0.7), rgba(0, 150, 200, 0.9));
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .profile-trigger img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .org-tab {
+        width: calc(100% + 200px);
+        margin-left: -100px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .org-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .org-brand img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+
+      .org-title {
+        font-size: 16px;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        font-weight: 700;
+      }
+
+      .org-subtitle {
+        font-size: 11px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      .org-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-right: -80px;
+      }
+
+      .org-status,
+      .org-chip {
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+      }
+
+      .org-status {
+        background: rgba(0, 214, 255, 0.14);
+        color: #00d8ff;
+      }
+
+      .org-chip {
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .org-info {
+        width: 100%;
+        margin-top: 6px;
+      }
+
+      .org-info-row {
+        display: flex;
+        gap: 18px;
+        flex-wrap: nowrap;
+        letter-spacing: 0.08em;
+        font-size: 12px;
+        overflow-x: auto;
+      }
+
+      .org-info-name {
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .org-info-status {
+        color: #00d896;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding-top: 8px;
+      }
+
+      .title {
+        font-size: 56px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 760px;
+        font-size: 14px;
+        margin-top: 8px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease), opacity 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: rgba(0, 0, 0, 0.92);
+        border-color: transparent;
+      }
+
+      .button.danger {
+        border-color: rgba(255, 120, 120, 0.35);
+        background: rgba(255, 120, 120, 0.12);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.03);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-inner {
+        padding: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .panel {
+        grid-column: span 12;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+
+      .field {
+        grid-column: span 6;
+        display: grid;
+        gap: 8px;
+      }
+
+      .field.span-12 {
+        grid-column: span 12;
+      }
+
+      label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        padding: 12px 12px;
+        outline: none;
+        transition: border-color 220ms var(--ease), background 220ms var(--ease);
+        font-family: var(--font-body);
+      }
+
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--border-strong);
+        background: rgba(0, 0, 0, 0.26);
+      }
+
+      .switch {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.12);
+      }
+
+      .switch input {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+      }
+
+      .switch .label {
+        display: grid;
+        gap: 2px;
+      }
+
+      .switch .label strong {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 600;
+      }
+
+      .switch .label span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .question-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .question {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        background: rgba(0, 0, 0, 0.14);
+        overflow: hidden;
+      }
+
+      .question-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .q-title {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .q-index {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .q-type-pill {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.16);
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .q-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .q-actions .button {
+        padding: 9px 12px;
+        letter-spacing: 0.08em;
+      }
+
+      .question-body {
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .inline {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+
+      .inline .field {
+        grid-column: span 6;
+      }
+
+      .options {
+        display: grid;
+        gap: 10px;
+      }
+
+      .option-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .option-row .button {
+        padding: 10px 12px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.12);
+      }
+
+      .pill strong {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .pill span {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      dialog {
+        border: 1px solid var(--border);
+        border-radius: 26px;
+        background: rgba(10, 10, 12, 0.8);
+        color: var(--text);
+        box-shadow: var(--shadow);
+        padding: 0;
+        max-width: min(880px, calc(100vw - 24px));
+        width: 100%;
+        backdrop-filter: blur(18px);
+      }
+
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.55);
+      }
+
+      .modal-head {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .modal-body {
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .preview-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .preview-card {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        background: rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+      }
+
+      .preview-card .head {
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .preview-card .body {
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .kvs {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 10px;
+      }
+
+      .kv {
+        grid-column: span 6;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.1);
+        padding: 12px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .kv small {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: rgba(255, 255, 255, 0.72);
+      }
+
+      .kv div {
+        font-size: 14px;
+      }
+
+      .toast {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 50;
+        max-width: min(520px, calc(100vw - 36px));
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: rgba(10, 10, 12, 0.7);
+        box-shadow: var(--shadow);
+        padding: 12px 14px;
+        backdrop-filter: blur(16px);
+        display: none;
+      }
+
+      .toast strong {
+        display: block;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .toast span {
+        display: block;
+        margin-top: 6px;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      @media (max-width: 960px) {
+        .title {
+          font-size: 44px;
+        }
+
+        .field {
+          grid-column: span 12;
+        }
+
+        .inline .field {
+          grid-column: span 12;
+        }
+
+        .kv {
+          grid-column: span 12;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="container">
+        <div class="hero-head">
+          <div class="org-tab">
+            <div class="org-brand">
+              <img src="vit.png" alt="Org logo" />
+              <div>
+                <div class="org-title">Vishwakarma Institute of Technology</div>
+                <div class="org-subtitle">Pune</div>
+              </div>
+            </div>
+            <div class="org-actions">
+              <span class="org-status">Verified</span>
+              <span class="org-chip">FACULTY</span>
+            </div>
+          </div>
+          <div class="org-info">
+            <div class="org-info-row">
+              <span class="org-info-name">Himanshu Deshmukh</span>
+              <span class="org-info-status">Active</span>
+              <span class="org-info-detail">Registration No: 12414955</span>
+              <span class="org-info-detail">BTech - Computer Science and Engineering (AI &amp; ML)</span>
+            </div>
+          </div>
+          <div class="topbar">
+            <div>
+              <div class="title">Exam Builder</div>
+              <div class="subtitle">
+                Configure metadata, build questions, preview the paper, and then publish when ready.
+              </div>
+            </div>
+            <div class="actions">
+              <a class="button" href="faculty.html">Back</a>
+              <button class="button" id="btn-save" type="button">Save Draft</button>
+              <button class="button primary" id="btn-publish" type="button">Publish Exam</button>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="profile-trigger-wrap">
+              <div class="profile-trigger">
+                <img src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section class="card panel" aria-label="Exam metadata">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Exam metadata</div>
+              <div class="muted">Basics that define how the exam runs.</div>
+            </div>
+            <div class="pill" aria-label="Live question count">
+              <strong>Questions</strong>
+              <span id="question-count">0</span>
+            </div>
+          </div>
+          <div class="card-inner">
+            <form id="meta-form" class="form-grid" autocomplete="off">
+              <div class="field">
+                <label for="exam-title">Title</label>
+                <input id="exam-title" name="title" type="text" placeholder="e.g. Midterm: Data Structures" required />
+              </div>
+
+              <div class="field">
+                <label for="exam-type">Type</label>
+                <select id="exam-type" name="type" required>
+                  <option value="">Select type</option>
+                  <option value="mcq">MCQ</option>
+                  <option value="subjective">Subjective</option>
+                  <option value="coding">Coding</option>
+                  <option value="mixed">Mixed</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="exam-duration">Duration (minutes)</label>
+                <input id="exam-duration" name="durationMinutes" type="number" min="1" step="1" placeholder="90" required />
+              </div>
+
+              <div class="field">
+                <label for="exam-negative">Negative marks per wrong answer (optional)</label>
+                <input id="exam-negative" name="negativeMarks" type="number" step="0.25" placeholder="0.25" />
+              </div>
+
+              <div class="field">
+                <label for="exam-start">Start datetime</label>
+                <input id="exam-start" name="startAt" type="datetime-local" required />
+              </div>
+
+              <div class="field">
+                <label for="exam-end">End datetime</label>
+                <input id="exam-end" name="endAt" type="datetime-local" required />
+              </div>
+
+              <div class="field span-12">
+                <div class="inline">
+                  <div class="field">
+                    <div class="switch">
+                      <input id="toggle-negative" type="checkbox" />
+                      <div class="label">
+                        <strong>Negative marking</strong>
+                        <span>Enable negative marking for wrong answers.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <div class="switch">
+                      <input id="toggle-random" type="checkbox" />
+                      <div class="label">
+                        <strong>Randomize questions</strong>
+                        <span>Shuffle order for each student.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <div class="switch">
+                      <input id="toggle-publish" type="checkbox" />
+                      <div class="label">
+                        <strong>Publish</strong>
+                        <span>Turn on when you are ready to publish.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="card panel" aria-label="Question builder">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Question builder</div>
+              <div class="muted">Add, remove, and reorder questions.</div>
+            </div>
+            <div class="actions">
+              <button class="button primary" id="btn-add-question" type="button">Add question</button>
+            </div>
+          </div>
+          <div class="card-inner">
+            <div id="question-list" class="question-list" aria-live="polite"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <dialog id="preview-modal" aria-label="Preview exam">
+      <div class="modal-head">
+        <div>
+          <div class="panel-title">Preview</div>
+          <div class="muted">Review before publishing.</div>
+        </div>
+        <div class="actions">
+          <button class="button" id="btn-close-preview" type="button">Close</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="preview-content" class="preview-grid"></div>
+        <div class="divider"></div>
+        <div class="actions" style="justify-content:flex-end;">
+          <button class="button" id="btn-preview-save" type="button">Save Draft</button>
+          <button class="button primary" id="btn-preview-confirm" type="button">Publish</button>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      <strong id="toast-title">Saved</strong>
+      <span id="toast-message">Draft saved locally.</span>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      (() => {
+        if (!window.Morpheus.requireAuth("professor")) return;
+
+        const els = {
+          title: document.getElementById("exam-title"),
+          type: document.getElementById("exam-type"),
+          duration: document.getElementById("exam-duration"),
+          negativeMarks: document.getElementById("exam-negative"),
+          startAt: document.getElementById("exam-start"),
+          endAt: document.getElementById("exam-end"),
+          toggleNegative: document.getElementById("toggle-negative"),
+          toggleRandom: document.getElementById("toggle-random"),
+          questionList: document.getElementById("question-list"),
+          questionCount: document.getElementById("question-count"),
+          btnAddQuestion: document.getElementById("btn-add-question"),
+          btnPublish: document.getElementById("btn-publish"),
+          toast: document.getElementById("toast"),
+          toastTitle: document.getElementById("toast-title"),
+          toastMessage: document.getElementById("toast-message"),
+        };
+
+        const uid = () => {
+          if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+          return "q_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+        };
+
+        const DEFAULT_QUESTION = () => ({
+          id: uid(),
+          type: "mcq",
+          marks: 1,
+          text: "",
+          options: ["", "", "", ""],
+          correct_answer: "",
+          keywords: "",
+        });
+
+        let questions = [];
+
+        const showToast = (title, message) => {
+          if (!els.toast) return;
+          els.toastTitle.textContent = title;
+          els.toastMessage.textContent = message;
+          els.toast.style.display = "block";
+          window.clearTimeout(showToast._t);
+          showToast._t = window.setTimeout(() => {
+            els.toast.style.display = "none";
+          }, 2400);
+        };
+
+        const escapeHtml = (str) => {
+          return String(str)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+        };
+
+        const updateQuestionCount = () => {
+          if (els.questionCount) {
+            els.questionCount.textContent = String(questions.length);
+          }
+        };
+
+        const renderQuestion = (q, idx) => {
+          const isMcq = q.type === "mcq";
+          const isSubjective = q.type === "subjective";
+          const isCode = q.type === "code";
+
+          const optionLabels = ["A", "B", "C", "D"];
+
+          return `
+            <div class="question" data-qid="${q.id}">
+              <div class="question-head">
+                <div class="q-title">
+                  <div class="q-index">Question ${idx + 1}</div>
+                  <div class="q-type-pill">${escapeHtml(q.type)}</div>
+                </div>
+                <div class="q-actions">
+                  <button class="button danger" type="button" data-action="remove-question">Remove</button>
+                </div>
+              </div>
+              <div class="question-body">
+                <div class="inline">
+                  <div class="field">
+                    <label>Type</label>
+                    <select data-role="q-type">
+                      <option value="mcq" ${q.type === "mcq" ? "selected" : ""}>MCQ</option>
+                      <option value="subjective" ${q.type === "subjective" ? "selected" : ""}>Subjective</option>
+                      <option value="code" ${q.type === "code" ? "selected" : ""}>Code</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Marks</label>
+                    <input type="number" min="0" step="0.5" value="${escapeHtml(q.marks)}" data-role="q-marks" />
+                  </div>
+                  <div class="field span-12" style="grid-column: span 12;">
+                    <label>Question text</label>
+                    <textarea data-role="q-text" placeholder="Write the question...">${escapeHtml(q.text)}</textarea>
+                  </div>
+                </div>
+
+                <div data-section="mcq" style="display:${isMcq ? "grid" : "none"}; gap: 12px;">
+                  <div class="options">
+                    ${q.options
+                      .map(
+                        (opt, i) => `
+                        <div class="option-row">
+                          <input type="text" value="${escapeHtml(opt)}" placeholder="Option ${i + 1}" data-role="option-text" data-option-index="${i}" />
+                          <span class="pill"><strong>${optionLabels[i]}</strong><span>Option</span></span>
+                        </div>
+                      `
+                      )
+                      .join("")}
+                  </div>
+                  <div class="field span-12">
+                    <label>Correct answer</label>
+                    <select data-role="q-correct">
+                      ${optionLabels
+                        .map(
+                          (label, i) =>
+                            `<option value="${i}" ${String(q.correct_answer) === String(i) ? "selected" : ""}>${label}</option>`
+                        )
+                        .join("")}
+                    </select>
+                  </div>
+                </div>
+
+                <div data-section="subjective" style="display:${isSubjective ? "grid" : "none"}; gap: 12px;">
+                  <div class="field span-12">
+                    <label>Correct answer</label>
+                    <textarea data-role="q-correct-text" placeholder="Expected answer">${escapeHtml(q.correct_answer || "")}</textarea>
+                  </div>
+                  <div class="field span-12">
+                    <label>Keywords (comma separated)</label>
+                    <input type="text" value="${escapeHtml(q.keywords || "")}" placeholder="e.g. normalization, ACID, indexing" data-role="q-keywords" />
+                  </div>
+                </div>
+
+                <div data-section="code" style="display:${isCode ? "grid" : "none"}; gap: 12px;">
+                  <div class="field span-12">
+                    <label>Expected output</label>
+                    <textarea data-role="q-correct-text" placeholder="Expected output">${escapeHtml(q.correct_answer || "")}</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        };
+
+        const renderAllQuestions = () => {
+          if (!els.questionList) return;
+          els.questionList.innerHTML = questions.map(renderQuestion).join("");
+          updateQuestionCount();
+        };
+
+        const addQuestion = () => {
+          questions.push(DEFAULT_QUESTION());
+          renderAllQuestions();
+        };
+
+        const removeQuestion = (qid) => {
+          questions = questions.filter((q) => q.id !== qid);
+          renderAllQuestions();
+        };
+
+        const normalizeExamType = (value) => {
+          if (value === "coding") return "code";
+          return value;
+        };
+
+        const buildPayload = () => {
+          const examType = normalizeExamType(els.type.value);
+          if (!examType) {
+            throw new Error("Exam type is required.");
+          }
+          if (!els.title.value.trim()) {
+            throw new Error("Exam title is required.");
+          }
+          const duration = Number.parseInt(els.duration.value, 10);
+          if (!Number.isFinite(duration)) throw new Error("Duration is required.");
+          const now = new Date();
+          const startAt = els.startAt.value ? new Date(els.startAt.value) : new Date(now.getTime());
+          const endAt = els.endAt.value
+            ? new Date(els.endAt.value)
+            : new Date(now.getTime() + duration * 60000);
+          if (!Number.isFinite(startAt.getTime())) throw new Error("Start time is required.");
+          if (!Number.isFinite(endAt.getTime())) throw new Error("End time is required.");
+          if (endAt.getTime() <= startAt.getTime()) throw new Error("End time must be after start time.");
+          if (!questions.length) throw new Error("Add at least one question.");
+
+          return {
+            title: els.title.value.trim(),
+            type: examType,
+            duration_minutes: duration,
+            start_time: startAt.toISOString(),
+            end_time: endAt.toISOString(),
+            negative_marking: els.toggleNegative.checked ? parseFloat(els.negativeMarks.value || "0") : 0,
+            randomize_questions: els.toggleRandom.checked,
+            questions: questions.map((q, i) => {
+              let correctAnswer = q.correct_answer;
+              let keywords = null;
+              let options = null;
+
+              if (q.type === "mcq") {
+                options = {
+                  A: q.options[0] || "",
+                  B: q.options[1] || "",
+                  C: q.options[2] || "",
+                  D: q.options[3] || "",
+                };
+                const idx = Number.parseInt(q.correct_answer, 10);
+                correctAnswer = Number.isFinite(idx) ? q.options[idx] || "" : "";
+              } else {
+                correctAnswer = correctAnswer || "";
+              }
+
+              if (q.type === "subjective") {
+                keywords = (q.keywords || "")
+                  .split(",")
+                  .map((k) => k.trim())
+                  .filter(Boolean);
+              }
+
+              return {
+                text: q.text,
+                type: q.type,
+                options,
+                correct_answer: correctAnswer,
+                keywords,
+                marks: Number.parseFloat(q.marks) || 0,
+                order: i + 1,
+              };
+            }),
+          };
+        };
+
+        if (els.btnAddQuestion) {
+          els.btnAddQuestion.addEventListener("click", addQuestion);
+        }
+
+        if (els.questionList) {
+          els.questionList.addEventListener("click", (event) => {
+            const btn = event.target.closest("button[data-action]");
+            if (!btn) return;
+            const qEl = event.target.closest("[data-qid]");
+            if (!qEl) return;
+            const qid = qEl.getAttribute("data-qid");
+            if (btn.getAttribute("data-action") === "remove-question") {
+              removeQuestion(qid);
+            }
+          });
+
+          els.questionList.addEventListener("input", (event) => {
+            const qEl = event.target.closest("[data-qid]");
+            if (!qEl) return;
+            const qid = qEl.getAttribute("data-qid");
+            const question = questions.find((q) => q.id === qid);
+            if (!question) return;
+
+            const role = event.target.getAttribute("data-role");
+            if (role === "q-text") question.text = event.target.value;
+            if (role === "q-marks") question.marks = event.target.value;
+            if (role === "q-keywords") question.keywords = event.target.value;
+            if (role === "q-correct-text") question.correct_answer = event.target.value;
+            if (role === "option-text") {
+              const idx = Number(event.target.getAttribute("data-option-index"));
+              if (Number.isFinite(idx)) question.options[idx] = event.target.value;
+            }
+          });
+
+          els.questionList.addEventListener("change", (event) => {
+            const qEl = event.target.closest("[data-qid]");
+            if (!qEl) return;
+            const qid = qEl.getAttribute("data-qid");
+            const question = questions.find((q) => q.id === qid);
+            if (!question) return;
+
+            const role = event.target.getAttribute("data-role");
+            if (role === "q-type") {
+              question.type = event.target.value;
+              renderAllQuestions();
+            }
+            if (role === "q-correct") {
+              question.correct_answer = event.target.value;
+            }
+          });
+        }
+
+        if (els.btnPublish) {
+          els.btnPublish.addEventListener("click", async () => {
+            els.btnPublish.disabled = true;
+            try {
+              const payload = buildPayload();
+              const result = await window.Morpheus.createExam(payload);
+              if (!result?.exam_id) {
+                throw new Error("Exam created but no id returned.");
+              }
+              showToast("Created", "Exam published successfully.");
+              window.location.href = "professor.html";
+            } catch (error) {
+              showToast("Error", error?.message || "Failed to create exam.");
+              els.btnPublish.disabled = false;
+            }
+          });
+        }
+
+        if (questions.length === 0) {
+          addQuestion();
+        } else {
+          renderAllQuestions();
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -869,10 +869,7 @@
               }
             })
             .catch(() => {});
-          window.Morpheus
-            .sendViolation(session_id, "screenshot_attempt", 0.6, { reason })
-            .catch(() => {});
-          showViolationToast("screenshot_attempt");
+          emitViolation("screenshot_attempt", { reason });
         };
 
         document.addEventListener("visibilitychange", () => {
@@ -889,14 +886,12 @@
         document.addEventListener("keydown", (event) => {
           if (event.key === "PrintScreen") {
             showOverlay();
-            window.Morpheus.sendViolation(session_id, "screenshot_attempt", 0.6, { key: "PrintScreen" }).catch(() => {});
-            showViolationToast("screenshot_attempt");
+            emitViolation("screenshot_attempt", { key: "PrintScreen" });
             window.setTimeout(hideOverlay, 1500);
           }
           if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
             showOverlay();
-            window.Morpheus.sendViolation(session_id, "screenshot_attempt", 0.6, { key: "Ctrl+Shift+S" }).catch(() => {});
-            showViolationToast("screenshot_attempt");
+            emitViolation("screenshot_attempt", { key: "Ctrl+Shift+S" });
             window.setTimeout(hideOverlay, 1500);
           }
         });
@@ -911,6 +906,27 @@
               multiple_faces: "Multiple persons detected",
               screenshot_attempt: "Screenshot attempt detected",
             }[violation] || "Violation detected";
+          let banner = document.getElementById("violation-banner");
+          if (!banner) {
+            banner = document.createElement("div");
+            banner.id = "violation-banner";
+            banner.style.position = "fixed";
+            banner.style.top = "16px";
+            banner.style.left = "50%";
+            banner.style.transform = "translateX(-50%)";
+            banner.style.background = "rgba(255, 210, 90, 0.95)";
+            banner.style.color = "#000";
+            banner.style.padding = "8px 16px";
+            banner.style.borderRadius = "999px";
+            banner.style.fontSize = "12px";
+            banner.style.fontWeight = "600";
+            banner.style.letterSpacing = "0.08em";
+            banner.style.zIndex = "10000";
+            banner.style.display = "none";
+            document.body.appendChild(banner);
+          }
+          banner.textContent = message;
+          banner.style.display = "block";
           let toast = document.getElementById("violation-toast");
           if (!toast) {
             toast = document.createElement("div");
@@ -931,7 +947,15 @@
           toast.style.display = "block";
           window.setTimeout(() => {
             toast.style.display = "none";
+            banner.style.display = "none";
           }, 2500);
+        };
+
+        const emitViolation = (violation, payload = {}, confidence = 0.6) => {
+          showViolationToast(violation);
+          window.Morpheus
+            .sendViolation(session_id, violation, confidence, payload)
+            .catch(() => {});
         };
 
         const showCriticalWarning = (message = "Integrity score critical") => {
@@ -956,7 +980,7 @@
 
         const handleCriticalIntegrity = async (score) => {
           if (finishing) return;
-          if (score == null || score >= 30) return;
+          if (score == null || score >= 75) return;
           finishing = true;
           showCriticalWarning("Integrity too low. Ending exam.");
           try {
@@ -1043,6 +1067,9 @@
               integrityEl.textContent = Math.round(data.integrity_score);
             }
 
+            if (Array.isArray(data?.violations)) {
+              data.violations.forEach((violation) => showViolationToast(violation));
+            }
             if (data?.violation) {
               showViolationToast(data.violation);
             }

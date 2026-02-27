@@ -7,6 +7,8 @@ import urllib.request
 from datetime import datetime
 from typing import Any
 
+os.environ.setdefault("TRANSFORMERS_NO_CODECARBON", "1")
+
 from sentence_transformers import SentenceTransformer, util
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

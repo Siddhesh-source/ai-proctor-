@@ -347,6 +347,18 @@
           </div>
         </header>
 
+        <section class="card" aria-label="Monitor controls">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Monitor Controls</div>
+              <div class="muted">Live monitoring for the selected exam.</div>
+            </div>
+            <div class="quick-actions">
+              <button id="refresh-monitor" class="button" type="button">Refresh</button>
+            </div>
+          </div>
+        </section>
+
         <section class="grid" aria-label="Live student monitoring"></section>
 
         <section class="card" aria-label="Exam logs">
@@ -388,6 +400,7 @@
           activeStatus: document.querySelector(".org-info-status"),
           logsBody: document.getElementById("logs-body"),
           monitorStatus: document.getElementById("monitor-status"),
+          refreshButton: document.getElementById("refresh-monitor"),
         };
 
         const getIntegrity = (session) => {
@@ -483,7 +496,12 @@
             `;
             return;
           }
-          els.logsBody.innerHTML = logs
+          const ordered = [...logs].sort((a, b) => {
+            const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return bTime - aTime;
+          });
+          els.logsBody.innerHTML = ordered
             .map((log) => {
               const time = log.created_at ? new Date(log.created_at).toLocaleString() : "—";
               const session = log.session_id ? log.session_id.slice(0, 8) : "—";
@@ -560,8 +578,14 @@
           }
         };
 
+        if (els.refreshButton) {
+          els.refreshButton.addEventListener("click", () => {
+            loadSessions();
+          });
+        }
+
         loadSessions();
-        setInterval(loadSessions, 10000);
+        setInterval(loadSessions, 5000);
       };
 
       start();

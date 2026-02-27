@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pre-Exam Lobby</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.68);
+        --border: rgba(255, 255, 255, 0.14);
+        --border-strong: rgba(255, 255, 255, 0.22);
+        --accent: #d7ff45;
+        --shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
+        --radius: 20px;
+        --radius-lg: 28px;
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+        --container: 1120px;
+
+        --status-ready: rgba(81, 255, 167, 0.2);
+        --status-warn: rgba(255, 214, 64, 0.2);
+        --status-error: rgba(255, 120, 120, 0.2);
+
+        --font-heading: "Anton", sans-serif;
+        --font-body: "Proxima Nova", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      .title,
+      .panel-title {
+        font-family: var(--font-heading);
+        font-weight: 400;
+      }
+
+      .page {
+        padding: 28px 24px 64px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: var(--container);
+        margin: 0 auto;
+        display: grid;
+        gap: 20px;
+      }
+
+      .header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .title {
+        font-size: 52px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        line-height: 1.7;
+        max-width: 560px;
+        font-size: 14px;
+      }
+
+      .button {
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--text);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .button.primary {
+        background: var(--accent);
+        color: rgba(0, 0, 0, 0.92);
+        border-color: transparent;
+      }
+
+      .button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.03);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-inner {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .panel {
+        grid-column: span 12;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 18px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-title {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .stepper {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+
+      .step {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+        background: rgba(0, 0, 0, 0.2);
+        position: relative;
+      }
+
+      .step[aria-disabled="true"] {
+        opacity: 0.45;
+      }
+
+      .step-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .step-title {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 12px;
+      }
+
+      .status-pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        border: 1px solid var(--border);
+      }
+
+      .status-pill.ready {
+        background: var(--status-ready);
+        border-color: rgba(81, 255, 167, 0.4);
+      }
+
+      .status-pill.warning {
+        background: var(--status-warn);
+        border-color: rgba(255, 214, 64, 0.4);
+      }
+
+      .status-pill.error {
+        background: var(--status-error);
+        border-color: rgba(255, 120, 120, 0.4);
+      }
+
+      .preview {
+        border-radius: var(--radius);
+        border: 1px solid var(--border-strong);
+        background: linear-gradient(140deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .face-guide-ring {
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        border: 2px solid rgba(215, 255, 69, 0.9);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+        pointer-events: none;
+      }
+
+      .liveness-hint {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .liveness-progress {
+        display: grid;
+        gap: 6px;
+      }
+
+      .liveness-progress-item {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .liveness-progress-item.done {
+        color: rgba(81, 255, 167, 0.92);
+      }
+
+      .rules {
+        display: grid;
+        gap: 10px;
+      }
+
+      .rules li {
+        list-style: none;
+        padding-left: 18px;
+        position: relative;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .rules li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 7px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px rgba(215, 255, 69, 0.12);
+      }
+
+      .system-checks {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+
+      .check-item {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      .check-status {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .check-status.ready {
+        color: rgba(81, 255, 167, 0.9);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .secure-zone {
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
+      }
+
+      .secure-zone img,
+      .secure-zone video,
+      .secure-zone canvas {
+        pointer-events: none;
+      }
+
+      .focus-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        z-index: 80;
+        display: none;
+      }
+
+      .focus-backdrop.active {
+        display: block;
+      }
+
+      body.liveness-focus #step-2 {
+        position: fixed;
+        z-index: 90;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(40vw, 720px);
+        min-width: 520px;
+        max-height: 88vh;
+        overflow: auto;
+        border-color: var(--border-strong);
+        background: rgba(12, 12, 12, 0.96);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+      }
+
+      body.liveness-focus #step-2 .preview {
+        height: 320px;
+      }
+
+      body.liveness-focus .face-guide-ring {
+        width: 280px;
+        height: 280px;
+      }
+
+      @media (max-width: 960px) {
+        .title {
+          font-size: 42px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page secure-zone">
+      <div id="focus-backdrop" class="focus-backdrop"></div>
+      <div class="container">
+        <header class="header">
+          <div>
+            <div class="title">Pre-Exam Lobby</div>
+            <div class="subtitle">
+              Complete each step to start your exam. The next step unlocks only after the current check passes.
+            </div>
+          </div>
+          <div>
+            <a class="button" href="student.html">Back to Dashboard</a>
+          </div>
+        </header>
+
+        <section class="card panel" aria-label="System checks">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">System Check</div>
+              <div class="muted">All indicators must be ready.</div>
+            </div>
+          </div>
+          <div class="card-inner system-checks">
+            <div class="check-item">
+              <span>Camera</span>
+              <span id="check-camera" class="check-status">Pending</span>
+            </div>
+            <div class="check-item">
+              <span>Microphone</span>
+              <span id="check-mic" class="check-status">Pending</span>
+            </div>
+            <div class="check-item">
+              <span>Face Verified</span>
+              <span id="check-face" class="check-status">Pending</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card panel" aria-label="Pre-exam steps">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Pre-Exam Steps</div>
+              <div class="muted">3-step verification before entry.</div>
+            </div>
+          </div>
+          <div class="card-inner">
+            <div class="stepper">
+              <div class="step" id="step-1" aria-disabled="false">
+                <div class="step-header">
+                  <div class="step-title">Step 1 — Camera Check</div>
+                  <span id="step-1-status" class="status-pill warning">Pending</span>
+                </div>
+                <div class="preview">Live Webcam Preview</div>
+                <div class="muted">Ensure your face is centered and lighting is clear.</div>
+                <div class="actions">
+                  <button id="camera-pass" class="button primary" type="button">Run Camera Check</button>
+                  <button id="camera-fail" class="button" type="button">Mark as Fail</button>
+                </div>
+              </div>
+
+              <div class="step" id="step-2" aria-disabled="true">
+                <div class="step-header">
+                  <div class="step-title">Step 2 — Face Verification</div>
+                  <span id="step-2-status" class="status-pill warning">Locked</span>
+                </div>
+                <div id="face-preview" class="preview">Align your face inside the circle</div>
+                <div id="liveness-hint" class="liveness-hint">We will guide you through left/right/up/down + blink.</div>
+                <div id="liveness-progress" class="liveness-progress"></div>
+                <div class="actions">
+                  <button id="face-verify" class="button primary" type="button" disabled>
+                    Capture + Verify
+                  </button>
+                  <span id="face-confidence" class="muted">Match confidence: —</span>
+                </div>
+              </div>
+
+              <div class="step" id="step-3" aria-disabled="true">
+                <div class="step-header">
+                  <div class="step-title">Step 3 — Rules &amp; Readiness</div>
+                  <span id="step-3-status" class="status-pill warning">Locked</span>
+                </div>
+                <ul class="rules">
+                  <li>Duration: <span id="rule-duration">—</span></li>
+                  <li>Questions: <span id="rule-questions">—</span></li>
+                  <li>Marking: <span id="rule-marking">—</span></li>
+                  <li>Proctoring notice: camera + mic are recorded.</li>
+                  <li>Fullscreen is required before starting.</li>
+                </ul>
+                <div class="actions">
+                  <button id="request-fullscreen" class="button" type="button" disabled>
+                    Request Fullscreen
+                  </button>
+                  <button id="start-exam" class="button primary" type="button" disabled>Start Exam</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+      (() => {
+        if (!window.Morpheus.requireAuth("student")) return;
+
+        const params = new URLSearchParams(window.location.search);
+        let exam_id = params.get("exam_id") || sessionStorage.getItem("morpheus_exam_id");
+
+        const els = {
+          checkCamera: document.getElementById("check-camera"),
+          checkMic: document.getElementById("check-mic"),
+          checkFace: document.getElementById("check-face"),
+          step1Status: document.getElementById("step-1-status"),
+          step2Status: document.getElementById("step-2-status"),
+          step3Status: document.getElementById("step-3-status"),
+          ruleDuration: document.getElementById("rule-duration"),
+          ruleQuestions: document.getElementById("rule-questions"),
+          ruleMarking: document.getElementById("rule-marking"),
+          step2: document.getElementById("step-2"),
+          step3: document.getElementById("step-3"),
+          cameraPass: document.getElementById("camera-pass"),
+          cameraFail: document.getElementById("camera-fail"),
+          faceVerify: document.getElementById("face-verify"),
+          faceConfidence: document.getElementById("face-confidence"),
+          livenessHint: document.getElementById("liveness-hint"),
+          livenessProgress: document.getElementById("liveness-progress"),
+          requestFullscreen: document.getElementById("request-fullscreen"),
+          startExam: document.getElementById("start-exam"),
+          preview: document.querySelector("#step-1 .preview"),
+          facePreview: document.getElementById("face-preview"),
+          focusBackdrop: document.getElementById("focus-backdrop"),
+        };
+
+        const state = {
+          cameraOk: false,
+          micOk: false,
+          faceVerified: false,
+          step3Ready: false,
+          stream: null,
+          micStream: null,
+          video: null,
+          faceVideo: null,
+        };
+
+        const LIVENESS_STEPS = [
+          { key: "center", prompt: "Center your face in the circle" },
+          { key: "left", prompt: "Move your face to the LEFT side of the circle" },
+          { key: "right", prompt: "Move your face to the RIGHT side of the circle" },
+          { key: "up", prompt: "Move your face UP in the circle" },
+          { key: "down", prompt: "Move your face DOWN in the circle" },
+          { key: "blink", prompt: "Blink once slowly" },
+        ];
+
+        const setStatus = (el, text, type) => {
+          el.textContent = text;
+          el.classList.remove("ready", "warning", "error");
+          if (type) el.classList.add(type);
+        };
+
+        const ensureVideo = () => {
+          if (state.video) return state.video;
+          const video = document.createElement("video");
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = true;
+          video.style.width = "100%";
+          video.style.height = "100%";
+          video.style.objectFit = "cover";
+          if (els.preview) {
+            els.preview.textContent = "";
+            els.preview.appendChild(video);
+          }
+          state.video = video;
+          return video;
+        };
+
+        const ensureVideoReady = (video) =>
+          new Promise((resolve) => {
+            if (video.readyState >= 2) {
+              resolve();
+              return;
+            }
+            const onReady = () => {
+              video.removeEventListener("loadeddata", onReady);
+              resolve();
+            };
+            video.addEventListener("loadeddata", onReady);
+          });
+
+        const ensureFaceVideo = () => {
+          if (state.faceVideo) return state.faceVideo;
+          const video = document.createElement("video");
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = true;
+          video.style.width = "100%";
+          video.style.height = "100%";
+          video.style.objectFit = "cover";
+          const ring = document.createElement("div");
+          ring.className = "face-guide-ring";
+          if (els.facePreview) {
+            els.facePreview.textContent = "";
+            els.facePreview.appendChild(video);
+            els.facePreview.appendChild(ring);
+          }
+          state.faceVideo = video;
+          return video;
+        };
+
+        const renderLivenessProgress = (completed = new Set()) => {
+          if (!els.livenessProgress) return;
+          els.livenessProgress.innerHTML = "";
+          for (const step of LIVENESS_STEPS) {
+            const row = document.createElement("div");
+            row.className = `liveness-progress-item${completed.has(step.key) ? " done" : ""}`;
+            row.textContent = `${completed.has(step.key) ? "✓" : "•"} ${step.prompt}`;
+            els.livenessProgress.appendChild(row);
+          }
+        };
+
+        const unlockStep2 = () => {
+          els.step2.setAttribute("aria-disabled", "false");
+          els.faceVerify.disabled = false;
+          setStatus(els.step2Status, "Ready", "ready");
+        };
+
+        const unlockStep3 = () => {
+          els.step3.setAttribute("aria-disabled", "false");
+          els.requestFullscreen.disabled = false;
+          state.step3Ready = true;
+          updateStartAvailability();
+        };
+
+        const updateStartAvailability = () => {
+          const hasExam = !!exam_id;
+          if (!hasExam) {
+            els.startExam.disabled = true;
+            setStatus(els.step3Status, "Missing exam", "error");
+            return;
+          }
+          const inFullscreen = !!document.fullscreenElement;
+          els.startExam.disabled = !(state.step3Ready && inFullscreen);
+          if (state.step3Ready) {
+            setStatus(els.step3Status, inFullscreen ? "Ready" : "Fullscreen required", inFullscreen ? "ready" : "warning");
+          }
+        };
+
+        const loadExamDetails = async () => {
+          try {
+            const exams = await window.Morpheus.getAvailableExams();
+            let exam = exams.find((item) => item.id === exam_id);
+            if (!exam && exams.length === 1) {
+              exam = exams[0];
+              exam_id = exam.id;
+            }
+            if (!exam && exams.length > 0 && !exam_id) {
+              exam = exams[0];
+              exam_id = exam.id;
+            }
+            if (!exam) {
+              updateStartAvailability();
+              return;
+            }
+            sessionStorage.setItem("morpheus_exam_id", exam_id);
+            if (els.ruleDuration) {
+              els.ruleDuration.textContent = `${exam.duration_minutes} minutes`;
+            }
+            if (els.ruleQuestions) {
+              const count = exam.question_count ?? exam.questions_count ?? "—";
+              els.ruleQuestions.textContent = count === "—" ? "—" : `${count} total`;
+            }
+            if (els.ruleMarking) {
+              const neg = Number(exam.negative_marking || 0);
+              els.ruleMarking.textContent = neg > 0 ? `-${neg} incorrect` : "No negative marking";
+            }
+            updateStartAvailability();
+          } catch {
+            updateStartAvailability();
+          }
+        };
+
+        const enterLivenessFocus = () => {
+          document.body.classList.add("liveness-focus");
+          if (els.focusBackdrop) {
+            els.focusBackdrop.classList.add("active");
+          }
+        };
+
+        const exitLivenessFocus = () => {
+          document.body.classList.remove("liveness-focus");
+          if (els.focusBackdrop) {
+            els.focusBackdrop.classList.remove("active");
+          }
+        };
+
+        const loadFaceMesh = () =>
+          new Promise((resolve, reject) => {
+            if (window.FaceMesh) {
+              resolve();
+              return;
+            }
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js";
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error("Failed to load FaceMesh"));
+            document.body.appendChild(script);
+          });
+
+        const requestMicrophone = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            state.micStream = stream;
+            stream.getTracks().forEach((track) => track.stop());
+            state.micOk = true;
+            setStatus(els.checkMic, "Ready", "ready");
+          } catch {
+            state.micOk = false;
+            setStatus(els.checkMic, "Fail", "error");
+          }
+        };
+
+        const captureLivenessSamples = async () => {
+          await loadFaceMesh();
+          const video = ensureFaceVideo();
+          if (!state.stream) {
+            throw new Error("Camera not started");
+          }
+
+          await ensureVideoReady(video);
+          try {
+            await video.play();
+          } catch {
+            // ignore autoplay restrictions
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          return new Promise((resolve, reject) => {
+            const startedAt = Date.now();
+            let currentStepIndex = 0;
+            let stableFrames = 0;
+            let blinkLow = false;
+            let blinkCount = 0;
+            let earBaseline = null;
+            let centerNose = null;
+            let centerFaceHeight = null;
+            let stepStartedAt = Date.now();
+            const actionOrder = [];
+            const completed = new Set();
+            const samples = {};
+
+            const faceMesh = new window.FaceMesh({
+              locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+            });
+
+            faceMesh.setOptions({
+              maxNumFaces: 1,
+              refineLandmarks: true,
+              minDetectionConfidence: 0.6,
+              minTrackingConfidence: 0.6,
+            });
+
+            renderLivenessProgress(completed);
+
+            const getEAR = (landmarks) => {
+              const lTop = landmarks[159], lBottom = landmarks[145], lLeft = landmarks[33], lRight = landmarks[133];
+              const rTop = landmarks[386], rBottom = landmarks[374], rLeft = landmarks[362], rRight = landmarks[263];
+              if (!lTop || !lBottom || !lLeft || !lRight || !rTop || !rBottom || !rLeft || !rRight) return 1;
+              const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+              const leftEAR = dist(lTop, lBottom) / Math.max(dist(lLeft, lRight), 0.0001);
+              const rightEAR = dist(rTop, rBottom) / Math.max(dist(rLeft, rRight), 0.0001);
+              return (leftEAR + rightEAR) / 2;
+            };
+
+            const passStep = (stepKey, embedding) => {
+              samples[stepKey] = embedding;
+              actionOrder.push(stepKey);
+              completed.add(stepKey);
+              renderLivenessProgress(completed);
+              currentStepIndex += 1;
+              stableFrames = 0;
+              stepStartedAt = Date.now();
+              if (currentStepIndex >= LIVENESS_STEPS.length) {
+                resolve({
+                  samples,
+                  blink_count: blinkCount,
+                  action_order: actionOrder,
+                  capture_duration_ms: Date.now() - startedAt,
+                });
+              } else if (els.livenessHint) {
+                els.livenessHint.textContent = LIVENESS_STEPS[currentStepIndex].prompt;
+              }
+            };
+
+            const onResults = (results) => {
+              const landmarks = results.multiFaceLandmarks?.[0];
+              if (!landmarks) {
+                stableFrames = 0;
+                if (els.livenessHint) els.livenessHint.textContent = "No face detected. Keep your face visible.";
+                return;
+              }
+
+              const step = LIVENESS_STEPS[currentStepIndex];
+              if (!step) return;
+
+              const values = [];
+              for (const point of landmarks) {
+                values.push(point.x, point.y, point.z);
+              }
+              const embedding = values.slice(0, 128);
+
+              const nose = landmarks[1] || landmarks[4];
+              if (!nose) return;
+              const forehead = landmarks[10];
+              const chin = landmarks[152];
+              const faceHeight = forehead && chin ? Math.abs(chin.y - forehead.y) : null;
+
+              let passed = false;
+              if (step.key === "center") {
+                passed = nose.x > 0.35 && nose.x < 0.65 && nose.y > 0.30 && nose.y < 0.70;
+                if (passed) {
+                  centerNose = { x: nose.x, y: nose.y };
+                  if (faceHeight) centerFaceHeight = faceHeight;
+                }
+              }
+
+              if (step.key === "left") {
+                const relPass = centerNose ? nose.x < centerNose.x - 0.03 : false;
+                passed = relPass || nose.x < 0.47;
+              }
+
+              if (step.key === "right") {
+                const relPass = centerNose ? nose.x > centerNose.x + 0.03 : false;
+                passed = relPass || nose.x > 0.53;
+              }
+
+              if (step.key === "up") {
+                const relPass = centerNose ? nose.y < centerNose.y - 0.02 : false;
+                const sizePass = centerFaceHeight && faceHeight ? faceHeight < centerFaceHeight * 0.97 : false;
+                passed = relPass || sizePass || nose.y < 0.46;
+              }
+
+              if (step.key === "down") {
+                const relPass = centerNose ? nose.y > centerNose.y + 0.02 : false;
+                const sizePass = centerFaceHeight && faceHeight ? faceHeight > centerFaceHeight * 1.03 : false;
+                passed = relPass || sizePass || nose.y > 0.54;
+              }
+
+              if (step.key === "blink") {
+                const ear = getEAR(landmarks);
+                if (earBaseline === null) earBaseline = ear;
+                earBaseline = earBaseline * 0.9 + ear * 0.1;
+                if (ear < earBaseline * 0.80) blinkLow = true;
+                if (els.livenessHint) {
+                  els.livenessHint.textContent = "Blink slowly once (close then open eyes).";
+                }
+                if (blinkLow && ear > earBaseline * 0.93) {
+                  blinkCount += 1;
+                  passStep("blink", embedding);
+                }
+                return;
+              }
+
+              if (passed) stableFrames += 1;
+              else stableFrames = 0;
+
+              if (!passed && els.livenessHint) {
+                if (step.key === "up") els.livenessHint.textContent = "Move your face a little higher in the circle.";
+                if (step.key === "down") els.livenessHint.textContent = "Move your face a little lower in the circle.";
+              }
+
+              if (stableFrames >= 1) {
+                passStep(step.key, embedding);
+                return;
+              }
+
+              if (Date.now() - stepStartedAt > 9000 && step.key !== "center") {
+                if (els.livenessHint) {
+                  els.livenessHint.textContent = "Auto-accepting this step due to low camera precision.";
+                }
+                passStep(step.key, embedding);
+              }
+            };
+
+            faceMesh.onResults(onResults);
+
+            const timeoutAt = Date.now() + 30000;
+            const tick = async () => {
+              if (currentStepIndex >= LIVENESS_STEPS.length) return;
+              if (Date.now() > timeoutAt) {
+                reject(new Error("Liveness timed out. Try again."));
+                return;
+              }
+              try {
+                await faceMesh.send({ image: video });
+              } catch {
+                reject(new Error("Face capture failed"));
+                return;
+              }
+              requestAnimationFrame(tick);
+            };
+
+            if (els.livenessHint) {
+              els.livenessHint.textContent = LIVENESS_STEPS[0].prompt;
+            }
+            requestAnimationFrame(tick);
+          });
+        };
+
+        els.cameraPass.addEventListener("click", () => {
+          navigator.mediaDevices
+            .getUserMedia({ video: true })
+            .then((stream) => {
+              state.stream = stream;
+              const video = ensureVideo();
+              const faceVideo = ensureFaceVideo();
+              video.srcObject = stream;
+              video.play().catch(() => null);
+              faceVideo.srcObject = stream;
+              state.cameraOk = true;
+              setStatus(els.step1Status, "Passed", "ready");
+              setStatus(els.checkCamera, "Ready", "ready");
+              renderLivenessProgress();
+              unlockStep2();
+              requestMicrophone();
+            })
+            .catch(() => {
+              state.cameraOk = false;
+              setStatus(els.step1Status, "Failed", "error");
+              setStatus(els.checkCamera, "Fail", "error");
+              if (els.preview) {
+                els.preview.textContent = "Camera access denied";
+              }
+            });
+        });
+
+        els.cameraFail.addEventListener("click", () => {
+          state.cameraOk = false;
+          setStatus(els.step1Status, "Failed", "error");
+          setStatus(els.checkCamera, "Fail", "error");
+        });
+
+        els.faceVerify.addEventListener("click", async () => {
+          els.faceVerify.disabled = true;
+          enterLivenessFocus();
+          setStatus(els.step2Status, "Verifying", "warning");
+          els.faceConfidence.textContent = "Verifying...";
+          try {
+            const liveness = await captureLivenessSamples();
+            let user = window.Morpheus.getUser();
+            if (!user?.id) {
+              user = await window.Morpheus.getMe();
+              if (user?.id) {
+                window.Morpheus.setUser({ id: user.id, role: user.role, full_name: user.full_name });
+              }
+            }
+            if (!user?.id) {
+              throw new Error("Unable to resolve user identity");
+            }
+            const result = await window.Morpheus.faceVerify(user.id, liveness);
+            if (result?.registered || result?.verified) {
+              state.faceVerified = true;
+              setStatus(els.step2Status, "Verified", "ready");
+              setStatus(els.checkFace, "Ready", "ready");
+              const confidence = result?.confidence ? ` (${Math.round(result.confidence * 100)}%)` : "";
+              els.faceConfidence.textContent = `Match confidence: Verified${confidence}`;
+              unlockStep3();
+            } else {
+              throw new Error("Face not recognized");
+            }
+          } catch (error) {
+            state.faceVerified = false;
+            setStatus(els.step2Status, "Retry", "error");
+            setStatus(els.checkFace, "Fail", "error");
+            els.faceConfidence.textContent = error?.message || "Face not recognized, please try again";
+          } finally {
+            exitLivenessFocus();
+            els.faceVerify.disabled = false;
+          }
+        });
+
+        els.requestFullscreen.addEventListener("click", async () => {
+          if (document.fullscreenElement) return;
+          try {
+            await document.documentElement.requestFullscreen();
+            updateStartAvailability();
+          } catch (error) {
+            updateStartAvailability();
+          }
+        });
+
+        document.addEventListener("fullscreenchange", () => {
+          updateStartAvailability();
+        });
+
+        els.startExam.addEventListener("click", async () => {
+          if (!exam_id) {
+            setStatus(els.step3Status, "Missing exam", "error");
+            return;
+          }
+          if (!document.fullscreenElement) {
+            setStatus(els.step3Status, "Fullscreen required", "warning");
+            return;
+          }
+          try {
+            const result = await window.Morpheus.startExam(exam_id);
+            sessionStorage.setItem("morpheus_session_id", result.session_id);
+            sessionStorage.setItem("morpheus_exam_id", exam_id);
+            window.location.href = `exam-interface.html?exam_id=${exam_id}`;
+          } catch (error) {
+            setStatus(els.step3Status, error?.message || "Start failed", "error");
+          }
+        });
+
+        loadExamDetails();
+      })();
+    </script>
+  </body>
+</html>
