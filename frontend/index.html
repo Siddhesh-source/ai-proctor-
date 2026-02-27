@@ -10,7 +10,7 @@
     <style>
       :root {
         color-scheme: dark;
-        --bg: #000;
+        --bg: #1b1d1c;
         --bg-elev: rgba(255, 255, 255, 0.04);
         --text: rgba(255, 255, 255, 0.92);
         --muted: rgba(255, 255, 255, 0.68);
@@ -36,10 +36,15 @@
 
       body {
         font-family: "Proxima Nova", sans-serif;
-        background: linear-gradient(90deg, #222 0%, var(--bg) 60%);
+        background: linear-gradient(90deg, #1b1d1c 0%, var(--bg) 60%);
         color: var(--text);
         min-height: 100vh;
         overflow-x: hidden;
+        transition: background-color 900ms var(--ease), color 900ms var(--ease);
+      }
+
+      body.marquee-active {
+        background-color: #1b1d1c;
       }
 
       body::before {
@@ -168,6 +173,7 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        font-weight: 700;
       }
 
       .nav-links a:hover {
@@ -183,6 +189,7 @@
       .nav-actions {
         display: flex;
         gap: 12px;
+        margin-left: 30px;
       }
 
       .button {
@@ -222,8 +229,8 @@
       }
 
       .button.primary {
-        background: #3fe38d;
-        color: #0b1f14;
+        background: #2563eb;
+        color: #f8fafc;
         border-color: transparent;
       }
 
@@ -231,18 +238,16 @@
         transform: translateY(-1px) scale(1.01);
       }
 
-      .button.link {
-        background: transparent;
+      .button.login {
+        background: #1bbf6b;
+        color: #071b12;
         border-color: transparent;
-        padding-left: 10px;
-        padding-right: 10px;
-        color: var(--muted);
       }
 
-      .button.link:hover {
-        color: var(--text);
-        background: transparent;
-        transform: none;
+      .button.login:hover {
+        transform: translateY(-1px) scale(1.01);
+        border-color: transparent;
+        background: #20d277;
       }
 
       .hero {
@@ -453,6 +458,387 @@
         max-width: 520px;
         line-height: 1.7;
         font-size: 14px;
+      }
+
+      .problem-section {
+        padding: 120px 0 200px;
+        background: #ffffff;
+        color: #0e0e0e;
+        transition: background-color 900ms var(--ease), color 900ms var(--ease);
+      }
+
+      .problem-inner {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 0 40px 0 0;
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: 32px;
+        align-items: start;
+      }
+
+      .problem-title {
+        font-family: "Anton", sans-serif;
+        font-size: clamp(46px, 7vw, 98px);
+        line-height: 0.92;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        margin-left: -60px;
+      }
+
+      .problem-title span {
+        display: block;
+        white-space: nowrap;
+      }
+
+      .problem-copy {
+        color: rgba(20, 20, 20, 0.72);
+        font-size: 14px;
+        line-height: 1.75;
+        letter-spacing: 0.02em;
+        text-transform: none;
+        align-self: center;
+        max-width: 420px;
+        justify-self: end;
+        font-weight: 700;
+        transition: color 900ms var(--ease);
+      }
+
+      .trusted-strip {
+        background: #ffffff;
+        color: #111111;
+        padding: 0 0 60px;
+        transition: background-color 900ms var(--ease), color 900ms var(--ease);
+      }
+
+      .trusted-strip-inner {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 0 40px 0 0;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .trusted-strip-text {
+        font-family: "Anton", sans-serif;
+        font-size: clamp(26px, 3.6vw, 52px);
+        line-height: 1.05;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        text-align: right;
+        font-weight: 700;
+        transition: color 900ms var(--ease);
+      }
+
+      body.marquee-active .problem-section,
+      body.marquee-active .trusted-strip {
+        background: #1b1d1c;
+        color: #e6e0d8;
+      }
+
+      body.marquee-active .problem-copy,
+      body.marquee-active .trusted-strip-text {
+        color: rgba(230, 224, 216, 0.86);
+      }
+
+      .trusted-strip-text span {
+        display: block;
+      }
+
+      .marquee-area {
+        display: grid;
+        gap: 125px;
+        padding: 0 0 90px;
+      }
+
+      .marquee-flow {
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .marquee-track {
+        display: inline-flex;
+        gap: 80px;
+        padding: 10px 0;
+        white-space: nowrap;
+        animation: marquee 16s linear infinite;
+        font-family: "Proxima Nova", sans-serif;
+        font-weight: 300;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: clamp(20px, 2.6vw, 34px);
+      }
+
+      .marquee-flow.alt .marquee-track {
+        animation-duration: 18s;
+        animation-direction: reverse;
+      }
+
+      .marquee-word {
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .exceptional-section {
+        padding: 120px 0 90px;
+        background: #1b1d1c;
+        min-height: 100vh;
+        margin-bottom: 40px;
+      }
+
+      .features-section {
+        padding: 90px 0 70px;
+        background: #1b1d1c;
+      }
+
+      .features-inner {
+        width: min(1320px, 100%);
+        margin: 0 auto;
+        padding: 0 24px;
+        display: grid;
+        gap: 28px;
+      }
+
+      .features-title {
+        font-family: "Anton", sans-serif;
+        font-size: clamp(46px, 7vw, 98px);
+        line-height: 0.92;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        margin-left: -60px;
+        color: #e6e0d8;
+        text-align: center;
+      }
+
+      .features-grid {
+        display: grid;
+        gap: 22px;
+      }
+
+      .feature-card {
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 0;
+        background: rgba(255, 255, 255, 0.04);
+        min-height: 240px;
+        padding: 24px;
+        display: flex;
+        align-items: flex-end;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .feature-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+        transform: none;
+        opacity: 0.75;
+      }
+
+      .feature-card span {
+        font-family: "Proxima Nova", sans-serif;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(255, 255, 255, 0.75);
+        position: relative;
+        z-index: 1;
+      }
+
+      .exceptional-inner {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 0 40px;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 32px;
+        align-items: center;
+      }
+
+      .exceptional-title {
+        font-family: "Anton", sans-serif;
+        font-size: clamp(46px, 7vw, 98px);
+        line-height: 0.92;
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        color: #e6e0d8;
+        margin-left: -100px;
+      }
+
+      .exceptional-title .word-roller {
+        display: inline-block;
+        width: 14ch;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .exceptional-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 32px 44px;
+        color: #d5d0c9;
+      }
+
+      .exceptional-details {
+        margin-left: 100px;
+        margin-top: 20px;
+      }
+
+      .exceptional-item {
+        display: grid;
+        gap: 6px;
+        font-size: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .exceptional-item.shift-right {
+        margin-left: 70px;
+      }
+
+      .exceptional-value {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "Anton", sans-serif;
+        font-size: 34px;
+        letter-spacing: 0.06em;
+      }
+
+      .exceptional-icon {
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .exceptional-icon img {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+        display: block;
+      }
+
+      .exceptional-cta {
+        margin-top: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: #071b12;
+        background: #1bbf6b;
+        border: none;
+        padding: 12px 22px;
+        border-radius: 999px;
+        text-decoration: none;
+        transform: translate(100px, 80px);
+      }
+
+      .exceptional-cta:hover {
+        background: #2563eb;
+        color: #f8fafc;
+      }
+
+      .faq-section {
+        padding: 0 0 120px;
+        margin-top: -50px;
+        background: #1b1d1c;
+      }
+
+      .faq-inner {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 0 40px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 28px;
+        align-items: start;
+      }
+
+      .faq-title {
+        font-family: "Anton", sans-serif;
+        font-size: clamp(40px, 5.8vw, 86px);
+        line-height: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #e6e0d8;
+      }
+
+      .faq-title span {
+        display: block;
+        white-space: nowrap;
+      }
+
+      .faq-columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px 28px;
+      }
+
+      .faq-accordion {
+        display: grid;
+        gap: 12px;
+      }
+
+      .faq-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+        padding: 10px 0;
+      }
+
+      .faq-item.is-open .faq-content {
+        max-height: 200px;
+        opacity: 1;
+      }
+
+      .faq-trigger {
+        width: 100%;
+        background: transparent;
+        border: none;
+        color: #d5d0c9;
+        font-size: 14px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: flex-start;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .faq-plus {
+        color: #14f1b3;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .faq-content {
+        color: rgba(213, 208, 201, 0.72);
+        font-size: 14px;
+        line-height: 1.7;
+        padding: 8px 0 4px 28px;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height 260ms var(--ease), opacity 220ms var(--ease);
+      }
+
+      @keyframes marquee {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(-50%);
+        }
       }
 
 
@@ -760,6 +1146,35 @@
           margin-top: 6px;
         }
 
+        .problem-inner {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+
+        .problem-copy {
+          justify-self: start;
+          max-width: 520px;
+        }
+
+        .exceptional-inner {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .exceptional-details {
+          margin-left: 0;
+          margin-top: 12px;
+        }
+
+        .faq-inner {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        .faq-columns {
+          grid-template-columns: 1fr;
+        }
+
         .capability {
           grid-column: span 12;
         }
@@ -776,6 +1191,43 @@
       @media (max-width: 720px) {
         .footer-inner {
           padding: 0 24px;
+        }
+
+        .problem-inner {
+          padding: 0 24px;
+        }
+
+        .features-inner {
+          padding: 0 24px;
+        }
+
+        .features-title {
+          margin-left: 0;
+        }
+
+        .problem-title {
+          margin-left: 0;
+        }
+
+        .trusted-strip-inner {
+          padding: 0 24px;
+          justify-content: flex-start;
+        }
+
+        .trusted-strip-text {
+          text-align: left;
+        }
+
+        .exceptional-inner {
+          padding: 0 24px;
+        }
+
+        .faq-inner {
+          padding: 0 24px;
+        }
+
+        .faq-title span {
+          white-space: normal;
         }
 
         .footer-top {
@@ -802,32 +1254,16 @@
             </div>
             <ul class="nav-links">
               <li>
-                <a href="#work">
-                  Our Work
+                <a href="#features">
+                  Why Us
                   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="m6 9 6 6 6-6" />
                   </svg>
                 </a>
               </li>
               <li>
-                <a href="#capabilities">
-                  Platforms
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </a>
-              </li>
-              <li>
-                <a href="#capabilities">
-                  Services
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </a>
-              </li>
-              <li>
-                <a href="#capabilities">
-                  Apps &amp; Integrations
+                <a href="#faq">
+                  FAQ's
                   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="m6 9 6 6 6-6" />
                   </svg>
@@ -835,7 +1271,7 @@
               </li>
               <li>
                 <a href="#about">
-                  About
+                  About Us
                   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="m6 9 6 6 6-6" />
                   </svg>
@@ -843,7 +1279,7 @@
               </li>
             </ul>
             <div class="nav-actions">
-              <a class="button link" href="login.html">
+              <a class="button login" href="login.html">
                 Login
                 <svg class="button-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M5 12h14" />
@@ -851,7 +1287,7 @@
                 </svg>
               </a>
               <a class="button primary" href="register.html">
-                Register
+                Join Us
                 <svg class="button-arrow" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
@@ -881,6 +1317,166 @@
           </div>
         </div>
       </section>
+      <section class="problem-section" id="why-us">
+        <div class="problem-inner">
+          <div class="problem-title">
+            <span>Redefining Exam</span>
+            <span>Security With</span>
+            <span>Next Gen AI</span>
+          </div>
+          <div class="problem-copy">
+            We deliver advanced AI-powered anti-cheat proctoring solutions. Our platform ensures secure,
+            real-time exam monitoring with dedicated dashboards for faculty and students.
+          </div>
+        </div>
+      </section>
+      <section class="trusted-strip" aria-label="Trusted by">
+        <div class="trusted-strip-inner">
+          <div class="trusted-strip-text">
+            <span>Trusted by</span>
+            <span>20+ Faculties</span>
+          </div>
+        </div>
+      </section>
+      <section class="marquee-area" id="platform">
+        <div class="marquee-flow">
+          <div class="marquee-track" aria-hidden="true">
+            <span class="marquee-word">Integrity</span>
+            <span class="marquee-word">Robust Proctoring</span>
+            <span class="marquee-word">Fair Examinations</span>
+            <span class="marquee-word">Integrity</span>
+            <span class="marquee-word">Robust Proctoring</span>
+            <span class="marquee-word">Fair Examinations</span>
+          </div>
+        </div>
+        <div class="marquee-flow alt">
+          <div class="marquee-track" aria-hidden="true">
+            <span class="marquee-word">AI Powered Proctoring</span>
+            <span class="marquee-word">New Gen Examinations</span>
+            <span class="marquee-word">AI Powered Proctoring</span>
+            <span class="marquee-word">New Gen Examinations</span>
+          </div>
+        </div>
+      </section>
+      <section class="features-section" id="features">
+        <div class="features-inner">
+          <div class="features-title">Features</div>
+          <div class="features-grid">
+            <div class="feature-card">
+              <video class="feature-video" autoplay muted loop playsinline disablepictureinpicture>
+                <source src="vidlive.mp4" type="video/mp4" />
+              </video>
+              <span>Real Time Analysis</span>
+            </div>
+            <div class="feature-card">
+              <video class="feature-video" autoplay muted loop playsinline disablepictureinpicture>
+                <source src="vidauto.mp4" type="video/mp4" />
+              </video>
+              <span>Auto Grading Engine</span>
+            </div>
+            <div class="feature-card">
+              <video class="feature-video" autoplay muted loop playsinline disablepictureinpicture>
+                <source src="vidmulti.mp4" type="video/mp4" />
+              </video>
+              <span>Multiutility Support</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="exceptional-section">
+        <div class="exceptional-inner">
+          <div class="exceptional-title">
+            <span>What</span>
+            <span>Makes</span>
+            <span>Us</span>
+            <span class="word-roller" aria-live="polite" aria-atomic="true">
+              <span class="word-roller-viewport">
+                <span class="word-roller-track" id="exceptional-word-track">
+                  <span class="word-roller-word" id="exceptional-word-current">EXCEPTIONAL</span>
+                  <span class="word-roller-word" id="exceptional-word-next">STAND OUT</span>
+                </span>
+              </span>
+            </span>
+          </div>
+          <div class="exceptional-details">
+            <div class="exceptional-grid">
+              <div class="exceptional-item">
+                <div class="exceptional-value"><span class="exceptional-icon"><img src="ca.svg" alt="" /></span>₹10M</div>
+                <div>Revenue Potential</div>
+              </div>
+              <div class="exceptional-item shift-right">
+                <div class="exceptional-value"><span class="exceptional-icon"><img src="ca2.svg" alt="" /></span>30+</div>
+                <div>Faculty partners</div>
+              </div>
+              <div class="exceptional-item">
+                <div class="exceptional-value"><span class="exceptional-icon"><img src="ca3.svg" alt="" /></span>10+</div>
+                <div>Security Parameters</div>
+              </div>
+              <div class="exceptional-item shift-right">
+                <div class="exceptional-value"><span class="exceptional-icon"><img src="ca4.svg" alt="" /></span>6+ Months</div>
+                <div>Exam integrity</div>
+              </div>
+            </div>
+            <a class="exceptional-cta" href="register.html">Join Us</a>
+          </div>
+        </div>
+      </section>
+      <section class="faq-section reveal" id="faq" aria-label="Common questions">
+        <div class="faq-inner">
+          <div class="faq-title">
+            <span>Common Questions For Our</span>
+            <span>Anti-Cheat Proctor System</span>
+          </div>
+          <div class="faq-columns">
+            <div class="faq-accordion">
+              <div class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span class="faq-plus">+</span>
+                  <span>How does the AI prevent cheating?</span>
+                </button>
+                <div class="faq-content">Our AI monitors behavior in real time, detecting suspicious activity like multiple faces, tab switching, and unusual movements.</div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span class="faq-plus">+</span>
+                  <span>Is the platform secure?</span>
+                </button>
+                <div class="faq-content">Yes. We use encrypted data transmission and secure authentication to protect exams and user data.</div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span class="faq-plus">+</span>
+                  <span>Do faculty and students have separate dashboards?</span>
+                </button>
+                <div class="faq-content">Yes. Faculty manage exams and review reports, while students access exams and results from their own dashboard.</div>
+              </div>
+            </div>
+            <div class="faq-accordion">
+              <div class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span class="faq-plus">+</span>
+                  <span>Can it detect tab switching or multiple devices?</span>
+                </button>
+                <div class="faq-content">Yes. The system flags tab switching, screen changes, and unauthorized device activity.</div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span class="faq-plus">+</span>
+                  <span>Is the system scalable?</span>
+                </button>
+                <div class="faq-content">Yes. It supports both small classes and large-scale institutional exams seamlessly.</div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-trigger" type="button">
+                  <span class="faq-plus">+</span>
+                  <span>Are flagged incidents reviewable?</span>
+                </button>
+                <div class="faq-content">Yes. All flagged events are recorded and available for faculty review with timestamps.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       <footer class="footer" id="about">
         <div class="footer-inner">
           <div class="footer-top">
@@ -890,11 +1486,11 @@
                 <span>Quatarly</span>
               </div>
               <p>
-                Award-winning eCommerce development agency. We build high-growth, scalable online stores for B2B and
-                DTC brands.
+                Secure online assessments with AI-powered proctoring, real-time monitoring, and integrity analytics
+                for every exam session.
               </p>
               <div>
-                <div class="footer-title">Get eCommerce insights</div>
+                <div class="footer-title">Get proctoring updates</div>
                 <div class="footer-signup">
                   <input type="email" placeholder="Your email" />
                   <button type="button" aria-label="Submit">→</button>
@@ -903,94 +1499,107 @@
             </div>
 
             <div class="footer-col">
-              <div class="footer-title">Platforms</div>
-              <a class="footer-link" href="#">Magento Development</a>
-              <a class="footer-link" href="#">Adobe Commerce</a>
-              <a class="footer-link" href="#">Shopify Development</a>
-              <a class="footer-link" href="#">Shopify Plus B2B</a>
-              <a class="footer-link" href="#">BigCommerce</a>
-              <a class="footer-link" href="#">WooCommerce</a>
-              <a class="footer-link" href="#">Headless Commerce</a>
+              <div class="footer-title">Platform</div>
+              <a class="footer-link" href="#">Live Proctoring</a>
+              <a class="footer-link" href="#">AI Behavior Detection</a>
+              <a class="footer-link" href="#">Integrity Analytics</a>
+              <a class="footer-link" href="#">LMS Integrations</a>
+              <a class="footer-link" href="#">Exam Scheduler</a>
+              <a class="footer-link" href="#">Session Review</a>
+              <a class="footer-link" href="#">Secure Browser</a>
             </div>
 
             <div class="footer-col">
               <div class="footer-title">Services</div>
-              <a class="footer-link" href="#">eCommerce Web Design</a>
-              <a class="footer-link" href="#">B2B eCommerce</a>
-              <a class="footer-link" href="#">Conversion Consulting</a>
-              <a class="footer-link" href="#">Performance Optimization</a>
-              <a class="footer-link" href="#">Platform Migration</a>
-              <a class="footer-link" href="#">eCommerce Audit</a>
+              <a class="footer-link" href="#">Proctoring Setup</a>
+              <a class="footer-link" href="#">Exam Policy Design</a>
+              <a class="footer-link" href="#">Risk Thresholds</a>
+              <a class="footer-link" href="#">Faculty Training</a>
+              <a class="footer-link" href="#">Incident Review</a>
+              <a class="footer-link" href="#">Support &amp; SLAs</a>
             </div>
 
             <div class="footer-col">
-              <div class="footer-title">Apps &amp; integrations</div>
-              <a class="footer-link" href="#">Magento NetSuite</a>
-              <a class="footer-link" href="#">Adobe Commerce NetSuite</a>
-              <a class="footer-link" href="#">Shopify NetSuite</a>
-              <a class="footer-link" href="#">BigCommerce NetSuite</a>
-              <a class="footer-link" href="#">All Apps &amp; Extensions</a>
+              <div class="footer-title">Integrations</div>
+              <a class="footer-link" href="#">Canvas</a>
+              <a class="footer-link" href="#">Moodle</a>
+              <a class="footer-link" href="#">Blackboard</a>
+              <a class="footer-link" href="#">Google Classroom</a>
+              <a class="footer-link" href="#">SSO &amp; Identity</a>
               <div class="footer-subtitle">Resources</div>
-              <a class="footer-link" href="#">Insights &amp; Blog</a>
-              <a class="footer-link" href="#">Case Studies</a>
+              <a class="footer-link" href="#">Product Updates</a>
+              <a class="footer-link" href="#">Security Whitepaper</a>
             </div>
 
             <div class="footer-col">
               <div class="footer-title">Company</div>
               <a class="footer-link" href="#">About Us</a>
-              <a class="footer-link" href="#">Our Work</a>
               <a class="footer-link" href="#">Contact</a>
-              <a class="footer-link" href="#">My Account</a>
-              <div class="footer-subtitle">Platform expertise</div>
-              <a class="footer-link" href="#">Magento B2B</a>
-              <a class="footer-link" href="#">Magento SEO</a>
-              <a class="footer-link" href="#">Shopify SEO</a>
-              <a class="footer-link" href="#">Hyvä Theme</a>
+              <a class="footer-link" href="#">Careers</a>
+              <a class="footer-link" href="#">Trust &amp; Safety</a>
+              <div class="footer-subtitle">Compliance</div>
+              <a class="footer-link" href="#">Data Privacy</a>
+              <a class="footer-link" href="#">Security</a>
+              <a class="footer-link" href="#">Accessibility</a>
+              <a class="footer-link" href="#">Terms</a>
             </div>
           </div>
 
           <div class="footer-bottom">
-            <span>© <span id="year"></span> quatarly. All rights reserved. Built with care for retail innovators.</span>
-            <span>Dark theme</span>
+            <span>© <span id="year"></span> quatarly. All rights reserved. Secure, fair, and trusted assessments.</span>
+            <span>AI Proctoring Platform</span>
           </div>
         </div>
       </footer>
     </div>
 
     <script>
-      const words = ["ANTI-CHEAT", "FAIR", "TAMPERPROOF"];
-      const track = document.getElementById("dynamic-word-track");
-      const currentEl = document.getElementById("dynamic-word-current");
-      const nextEl = document.getElementById("dynamic-word-next");
-      const year = document.getElementById("year");
-      year.textContent = new Date().getFullYear();
+      const startWordRoller = (trackEl, currentEl, nextEl, words, interval = 1000) => {
+        if (!trackEl || !currentEl || !nextEl) return;
 
+        let index = 0;
+        let swapping = false;
 
-      let index = 0;
-      let swapping = false;
+        const swapWord = () => {
+          if (swapping) return;
+          swapping = true;
 
-      const swapWord = () => {
-        if (swapping) return;
-        swapping = true;
+          const currentIndex = index;
+          const nextIndex = (index + 1) % words.length;
+          currentEl.textContent = words[currentIndex];
+          nextEl.textContent = words[nextIndex];
 
-        const currentIndex = index;
-        const nextIndex = (index + 1) % words.length;
-        currentEl.textContent = words[currentIndex];
-        nextEl.textContent = words[nextIndex];
-
-        track.animate(
-          [{ transform: "translateY(0%)" }, { transform: "translateY(-50%)" }],
-          { duration: 1000, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
-        ).onfinish = () => {
-          index = nextIndex;
-          currentEl.textContent = words[index];
-          nextEl.textContent = words[(index + 1) % words.length];
-          track.style.transform = "translateY(0%)";
-          swapping = false;
+          trackEl.animate(
+            [{ transform: "translateY(0%)" }, { transform: "translateY(-50%)" }],
+            { duration: 1000, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+          ).onfinish = () => {
+            index = nextIndex;
+            currentEl.textContent = words[index];
+            nextEl.textContent = words[(index + 1) % words.length];
+            trackEl.style.transform = "translateY(0%)";
+            swapping = false;
+          };
         };
+
+        setInterval(swapWord, interval);
       };
 
-      setInterval(swapWord, 1000);
+      const year = document.getElementById("year");
+      year.textContent = new Date().getFullYear();
+      startWordRoller(
+        document.getElementById("dynamic-word-track"),
+        document.getElementById("dynamic-word-current"),
+        document.getElementById("dynamic-word-next"),
+        ["ANTI-CHEAT", "FAIR", "TAMPERPROOF"],
+        1000,
+      );
+      startWordRoller(
+        document.getElementById("exceptional-word-track"),
+        document.getElementById("exceptional-word-current"),
+        document.getElementById("exceptional-word-next"),
+        ["EXCEPTIONAL", "STAND OUT", "AGILE", "DIFFERENT", "WOW"],
+        1200,
+      );
 
       const revealTargets = Array.from(document.querySelectorAll(".reveal"));
       const revealObserver = new IntersectionObserver(
@@ -1010,6 +1619,45 @@
       } else {
         for (const el of revealTargets) el.classList.add("is-visible");
       }
+
+      const marqueeSection = document.querySelector(".marquee-area");
+      if (marqueeSection) {
+        const marqueeObserver = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              document.body.classList.toggle("marquee-active", entry.isIntersecting);
+            });
+          },
+          { threshold: 0, rootMargin: "20px 0px 20px 0px" },
+        );
+        marqueeObserver.observe(marqueeSection);
+      }
+
+      const faqItems = Array.from(document.querySelectorAll(".faq-item"));
+      faqItems.forEach((item) => {
+        const trigger = item.querySelector(".faq-trigger");
+        const content = item.querySelector(".faq-content");
+        const icon = item.querySelector(".faq-plus");
+        if (!trigger || !content) return;
+        trigger.setAttribute("aria-expanded", "false");
+        trigger.addEventListener("click", () => {
+          const isOpen = !item.classList.contains("is-open");
+          faqItems.forEach((other) => {
+            if (other === item) return;
+            other.classList.remove("is-open");
+            const otherTrigger = other.querySelector(".faq-trigger");
+            const otherContent = other.querySelector(".faq-content");
+            const otherIcon = other.querySelector(".faq-plus");
+            if (otherTrigger) otherTrigger.setAttribute("aria-expanded", "false");
+            if (otherContent) otherContent.style.maxHeight = "0px";
+            if (otherIcon) otherIcon.textContent = "+";
+          });
+          item.classList.toggle("is-open", isOpen);
+          trigger.setAttribute("aria-expanded", isOpen ? "true" : "false");
+          content.style.maxHeight = isOpen ? `${content.scrollHeight}px` : "0px";
+          if (icon) icon.textContent = isOpen ? "-" : "+";
+        });
+      });
 
     </script>
   </body>

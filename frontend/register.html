@@ -85,6 +85,15 @@
         text-transform: uppercase;
         letter-spacing: 0.16em;
         font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .kicker-icon {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
       }
 
       .headline {
@@ -95,6 +104,36 @@
         line-height: 0.92;
         letter-spacing: 0.02em;
         text-transform: uppercase;
+      }
+
+      .headline .highlight {
+        color: var(--accent);
+        display: inline-block;
+        margin-left: -8px;
+        padding-bottom: 4px;
+        position: relative;
+        transition: transform 220ms var(--ease);
+      }
+
+      .headline .highlight::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 2px;
+        background: var(--accent);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 220ms var(--ease);
+      }
+
+      .headline .highlight:hover {
+        transform: translate(-4px, -4px);
+      }
+
+      .headline .highlight:hover::after {
+        transform: scaleX(1);
       }
 
       .lead {
@@ -128,36 +167,6 @@
         color: rgba(255, 255, 255, 0.7);
         line-height: 1.7;
         font-size: 13px;
-      }
-
-      .trusted {
-        margin-top: 38px;
-        padding-top: 24px;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-      }
-
-      .trusted-title {
-        font-family: "Anton", sans-serif;
-        font-weight: 400;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        font-size: 36px;
-        line-height: 1;
-      }
-
-      .trusted-title span {
-        color: var(--accent);
-      }
-
-      .brand-row {
-        display: flex;
-        gap: 24px;
-        flex-wrap: wrap;
-        margin-top: 16px;
-        color: rgba(255, 255, 255, 0.66);
-        font-style: italic;
-        font-weight: 700;
-        letter-spacing: 0.02em;
       }
 
       .logo {
@@ -228,6 +237,11 @@
       .field {
         display: grid;
         gap: 10px;
+      }
+
+      .logo-field {
+        margin-top: 20px;
+        padding-top: 10px;
       }
 
       label {
@@ -304,8 +318,8 @@
 
       .topic:hover {
         transform: translateY(-1px);
-        border-color: rgba(255, 255, 255, 0.4);
-        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(0, 200, 150, 0.65);
+        background: rgba(0, 200, 150, 0.08);
       }
 
       .topic[aria-pressed="true"] {
@@ -378,8 +392,8 @@
       }
 
       .button.primary {
-        background: #ffffff;
-        color: rgba(0, 0, 0, 0.92);
+        background: #1d6ef2;
+        color: #f5fbff;
         border-color: transparent;
       }
 
@@ -393,11 +407,33 @@
         display: none;
       }
 
-      .logo-upload {
-        justify-content: flex-start;
-        background: rgba(255, 255, 255, 0.08);
-        color: var(--text);
-        border-color: rgba(255, 255, 255, 0.22);
+      .upload-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 20px;
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        user-select: none;
+        margin-top: 10px;
+      }
+
+      .upload-plus {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        font-weight: 700;
+        font-size: 16px;
+        line-height: 1;
+      }
+
+      .upload-label:hover .upload-plus {
+        border-color: var(--border-strong);
       }
 
       .hint {
@@ -446,8 +482,8 @@
 
         <div class="shell">
           <div class="left">
-            <div class="kicker">Create Account</div>
-            <div class="headline">Let's implement robust proctoring for you</div>
+            <div class="kicker"><img class="kicker-icon" src="ca.svg" alt="Create Account icon" />Create Account</div>
+            <div class="headline">Let's implement <span class="highlight">robust proctoring</span> for you</div>
             <div class="lead">Secure your exams with next-generation proctoring</div>
 
             <div class="steps" aria-label="How it works">
@@ -465,16 +501,6 @@
               </div>
             </div>
 
-            <div class="trusted">
-              <div class="trusted-title">Trusted by <span>+300</span> brands</div>
-              <div class="brand-row" aria-label="Brand list">
-                <span>PayPal</span>
-                <span>Marucci</span>
-                <span>PennState</span>
-                <span>Bobcat</span>
-                <span>Purdue</span>
-              </div>
-            </div>
           </div>
 
           <div class="right">
@@ -537,10 +563,13 @@
                     </div>
                   </div>
 
-                  <div class="field">
+                  <div class="field logo-field">
                     <label for="org-logo">Organisation Logo</label>
                     <input id="org-logo" class="file-input" name="org_logo" type="file" accept="image/*" />
-                    <button id="upload-logo" class="button logo-upload" type="button">Upload the organisation logo</button>
+                    <label class="upload-label" for="org-logo">
+                      <span class="upload-plus">+</span>
+                      <span>Upload Your Organisation's Logo</span>
+                    </label>
                   </div>
 
                   <div class="form-grid" style="margin-top: 6px;">
@@ -588,7 +617,6 @@
       const formError = document.getElementById("form-error");
 
       const logoInput = document.getElementById("org-logo");
-      const uploadLogoButton = document.getElementById("upload-logo");
 
       const setText = (el, value) => {
         el.textContent = value || "";
@@ -654,11 +682,6 @@
         btn.addEventListener("click", () => setTopic(btn.getAttribute("data-topic")));
       });
 
-      if (logoInput && uploadLogoButton) {
-        uploadLogoButton.addEventListener("click", () => {
-          logoInput.click();
-        });
-      }
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
