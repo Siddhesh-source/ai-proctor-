@@ -759,8 +759,8 @@
             faceMesh.setOptions({
               maxNumFaces: 1,
               refineLandmarks: true,
-              minDetectionConfidence: 0.6,
-              minTrackingConfidence: 0.6,
+              minDetectionConfidence: 0.75,
+              minTrackingConfidence: 0.75,
             });
 
             renderLivenessProgress(completed);
@@ -820,7 +820,7 @@
 
               let passed = false;
               if (step.key === "center") {
-                passed = nose.x > 0.35 && nose.x < 0.65 && nose.y > 0.30 && nose.y < 0.70;
+                passed = nose.x > 0.38 && nose.x < 0.62 && nose.y > 0.33 && nose.y < 0.67;
                 if (passed) {
                   centerNose = { x: nose.x, y: nose.y };
                   if (faceHeight) centerFaceHeight = faceHeight;
@@ -828,32 +828,32 @@
               }
 
               if (step.key === "left") {
-                const relPass = centerNose ? nose.x < centerNose.x - 0.03 : false;
-                passed = relPass || nose.x < 0.47;
+                const relPass = centerNose ? nose.x < centerNose.x - 0.05 : false;
+                passed = relPass || nose.x < 0.44;
               }
 
               if (step.key === "right") {
-                const relPass = centerNose ? nose.x > centerNose.x + 0.03 : false;
-                passed = relPass || nose.x > 0.53;
+                const relPass = centerNose ? nose.x > centerNose.x + 0.05 : false;
+                passed = relPass || nose.x > 0.56;
               }
 
               if (step.key === "up") {
-                const relPass = centerNose ? nose.y < centerNose.y - 0.02 : false;
-                const sizePass = centerFaceHeight && faceHeight ? faceHeight < centerFaceHeight * 0.97 : false;
-                passed = relPass || sizePass || nose.y < 0.46;
+                const relPass = centerNose ? nose.y < centerNose.y - 0.04 : false;
+                const sizePass = centerFaceHeight && faceHeight ? faceHeight < centerFaceHeight * 0.95 : false;
+                passed = relPass || sizePass || nose.y < 0.43;
               }
 
               if (step.key === "down") {
-                const relPass = centerNose ? nose.y > centerNose.y + 0.02 : false;
-                const sizePass = centerFaceHeight && faceHeight ? faceHeight > centerFaceHeight * 1.03 : false;
-                passed = relPass || sizePass || nose.y > 0.54;
+                const relPass = centerNose ? nose.y > centerNose.y + 0.04 : false;
+                const sizePass = centerFaceHeight && faceHeight ? faceHeight > centerFaceHeight * 1.05 : false;
+                passed = relPass || sizePass || nose.y > 0.57;
               }
 
               if (step.key === "blink") {
                 const ear = getEAR(landmarks);
                 if (earBaseline === null) earBaseline = ear;
                 earBaseline = earBaseline * 0.9 + ear * 0.1;
-                if (ear < earBaseline * 0.80) blinkLow = true;
+                if (ear < earBaseline * 0.75) blinkLow = true;
                 if (els.livenessHint) {
                   els.livenessHint.textContent = "Blink slowly once (close then open eyes).";
                 }
@@ -872,12 +872,12 @@
                 if (step.key === "down") els.livenessHint.textContent = "Move your face a little lower in the circle.";
               }
 
-              if (stableFrames >= 1) {
+              if (stableFrames >= 2) {
                 passStep(step.key, embedding);
                 return;
               }
 
-              if (Date.now() - stepStartedAt > 9000 && step.key !== "center") {
+              if (Date.now() - stepStartedAt > 13000 && step.key !== "center") {
                 if (els.livenessHint) {
                   els.livenessHint.textContent = "Auto-accepting this step due to low camera precision.";
                 }

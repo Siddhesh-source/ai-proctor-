@@ -68,7 +68,7 @@ def _validate_liveness_evidence(payload: FaceVerifyRequest, samples: dict[str, l
     if payload.blink_count < 1:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Blink check failed")
 
-    if payload.capture_duration_ms < 1800:
+    if payload.capture_duration_ms < 2340:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Liveness capture too short")
 
 
@@ -159,7 +159,7 @@ async def face_verify(
     if matched_poses < 3:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Insufficient pose match")
 
-    if avg_similarity > 0.82 and min_similarity > 0.70:
+    if avg_similarity > 0.88 and min_similarity > 0.79:
         return {
             "verified": True,
             "confidence": round(avg_similarity, 4),
