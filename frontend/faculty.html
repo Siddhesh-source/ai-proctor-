@@ -211,16 +211,47 @@
         transition: border-color 220ms var(--ease), transform 220ms var(--ease);
       }
 
-      .profile-trigger img {
+      .avatar {
+        position: relative;
+        display: inline-flex;
         width: 100%;
         height: 100%;
-        border-radius: 50%;
+        overflow: hidden;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.08);
+        align-items: center;
+        justify-content: center;
+      }
+
+      .avatar-image {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
+        position: relative;
+        z-index: 1;
+      }
+
+      .avatar-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
       }
 
       .profile-trigger:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 4px;
+      }
+
+      .separator {
+        height: 1px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.12);
       }
 
       .profile-popup {
@@ -261,13 +292,6 @@
         height: 48px;
         border-radius: 12px;
         overflow: hidden;
-      }
-
-      .profile-popup-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
       }
 
       .profile-popup-name {
@@ -752,6 +776,7 @@
               <span class="org-chip">FACULTY</span>
             </div>
           </div>
+          <div class="separator" role="separator" aria-orientation="horizontal"></div>
           <div class="org-info">
             <div class="org-info-row">
               <span class="org-info-name">Himanshu Deshmukh</span>
@@ -776,12 +801,18 @@
                 aria-expanded="false"
                 aria-controls="profile-popup"
               >
-                <img src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
+                <span class="avatar">
+                  <img class="avatar-image" src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
+                  <span class="avatar-fallback">HD</span>
+                </span>
               </button>
               <div class="profile-popup" id="profile-popup" role="menu" aria-hidden="true">
                 <div class="profile-popup-header">
                   <div class="profile-popup-avatar">
-                    <img src="https://i.pravatar.cc/150?img=32" alt="Faculty avatar" />
+                    <span class="avatar">
+                      <img class="avatar-image" src="https://i.pravatar.cc/150?img=32" alt="Faculty avatar" />
+                      <span class="avatar-fallback">HD</span>
+                    </span>
                   </div>
                   <div>
                     <div class="profile-popup-name">Himanshu Deshmukh</div>

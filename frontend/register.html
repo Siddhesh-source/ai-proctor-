@@ -366,6 +366,9 @@
         color: rgba(0, 0, 0, 0.92);
         cursor: pointer;
         transition: transform 220ms var(--ease), border-color 220ms var(--ease), background 220ms var(--ease);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .button:hover {
@@ -384,6 +387,17 @@
         opacity: 0.75;
         cursor: not-allowed;
         transform: none;
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .logo-upload {
+        justify-content: flex-start;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        border-color: rgba(255, 255, 255, 0.22);
       }
 
       .hint {
@@ -433,21 +447,21 @@
         <div class="shell">
           <div class="left">
             <div class="kicker">Create Account</div>
-            <div class="headline">Let's build something great together</div>
-            <div class="lead">Tell us about your project. We'll follow up to help you get started.</div>
+            <div class="headline">Let's implement robust proctoring for you</div>
+            <div class="lead">Secure your exams with next-generation proctoring</div>
 
             <div class="steps" aria-label="How it works">
               <div class="step">
-                <div class="step-title">1. Start The Conversation</div>
-                <div class="step-desc">Share a few details in this form, and we'll follow up to discuss next steps.</div>
+                <div class="step-title">1. Set Up Your Platform</div>
+                <div class="step-desc">Register and onboard faculty and students with structured role-based dashboards.</div>
               </div>
               <div class="step">
-                <div class="step-title">2. Free Consultation</div>
-                <div class="step-desc">We'll connect to uncover opportunities and shape the plan together.</div>
+                <div class="step-title">2. Manage Exams with Precision</div>
+                <div class="step-desc">Create, schedule, and supervise exams through a centralized faculty control panel.</div>
               </div>
               <div class="step">
-                <div class="step-title">3. Receive A Tailored Proposal</div>
-                <div class="step-desc">Get a personalized roadmap with scope, timeline, and next steps.</div>
+                <div class="step-title">3. Ensure Integrity with AI Proctoring</div>
+                <div class="step-desc">Secure online exams with intelligent anti-cheat detection and real-time monitoring.</div>
               </div>
             </div>
 
@@ -471,16 +485,7 @@
                 <form id="register-form" novalidate>
                   <div class="form-grid">
                     <div class="field">
-                      <label for="first">First Name*</label>
-                      <input id="first" name="first" type="text" autocomplete="given-name" placeholder="First name" />
-                    </div>
-                    <div class="field">
-                      <label for="last">Last Name*</label>
-                      <input id="last" name="last" type="text" autocomplete="family-name" placeholder="Last name" />
-                    </div>
-
-                    <div class="field">
-                      <label for="email">Company Email*</label>
+                      <label for="email">Email*</label>
                       <input id="email" name="email" type="email" autocomplete="username" placeholder="name@company.com" required />
                       <div id="email-error" class="error"></div>
                     </div>
@@ -499,58 +504,43 @@
                     </div>
                   </div>
 
-                  <div class="topic-title">Choose a topic</div>
+                  <div class="topic-title">Choose the utility</div>
                   <input id="topic" name="topic" type="hidden" value="" />
                   <div class="topics" role="group" aria-label="Topic selection">
-                    <button class="topic" type="button" data-topic="UX/UI Design" aria-pressed="false">
+                    <button class="topic" type="button" data-topic="College Exams" aria-pressed="false">
                       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M7 8h10" />
                         <path d="M7 12h6" />
                         <path d="M7 16h8" />
                         <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
                       </svg>
-                      <div class="topic-label">UX/UI Design</div>
+                      <div class="topic-label">College Exams</div>
                     </button>
-                    <button class="topic" type="button" data-topic="New Development" aria-pressed="false">
+                    <button class="topic" type="button" data-topic="Online Assessment" aria-pressed="false">
                       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 2v20" />
                         <path d="M2 12h20" />
                         <path d="M4 4h16v16H4z" />
                       </svg>
-                      <div class="topic-label">New Development</div>
-                    </button>
-                    <button class="topic" type="button" data-topic="Site Enhancements" aria-pressed="false">
-                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M4 7h16" />
-                        <path d="M4 12h16" />
-                        <path d="M4 17h16" />
-                      </svg>
-                      <div class="topic-label">Site Enhancements</div>
-                    </button>
-                    <button class="topic" type="button" data-topic="Apps" aria-pressed="false">
-                      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M7 2h10" />
-                        <path d="M7 22h10" />
-                        <path d="M6 5h12v14H6z" />
-                      </svg>
-                      <div class="topic-label">Apps</div>
+                      <div class="topic-label">Online Assessment</div>
                     </button>
                   </div>
 
-                  <div class="field" style="margin-top: 18px;">
-                    <label for="budget">Budget Range</label>
-                    <select id="budget" name="budget">
-                      <option value="" selected>Choose budget range</option>
-                      <option value="under-1">Under $1k</option>
-                      <option value="1-5">$1k – $5k</option>
-                      <option value="5-15">$5k – $15k</option>
-                      <option value="15plus">$15k+</option>
-                    </select>
+                  <div class="form-grid" style="margin-top: 18px;">
+                    <div class="field">
+                      <label for="num-faculties">Number of Faculties*</label>
+                      <input id="num-faculties" name="num_faculties" type="number" min="1" placeholder="e.g. 10" />
+                    </div>
+                    <div class="field">
+                      <label for="num-students">Number of Students*</label>
+                      <input id="num-students" name="num_students" type="number" min="1" placeholder="e.g. 500" />
+                    </div>
                   </div>
 
                   <div class="field">
-                    <label for="message">Message*</label>
-                    <textarea id="message" name="message" placeholder="Tell us about what you're building..."></textarea>
+                    <label for="org-logo">Organisation Logo</label>
+                    <input id="org-logo" class="file-input" name="org_logo" type="file" accept="image/*" />
+                    <button id="upload-logo" class="button logo-upload" type="button">Upload the organisation logo</button>
                   </div>
 
                   <div class="form-grid" style="margin-top: 6px;">
@@ -584,8 +574,6 @@
       const DEFAULT_ROLE = "student";
 
       const form = document.getElementById("register-form");
-      const first = document.getElementById("first");
-      const last = document.getElementById("last");
       const email = document.getElementById("email");
       const password = document.getElementById("password");
       const confirm = document.getElementById("confirm");
@@ -598,6 +586,9 @@
       const passwordError = document.getElementById("password-error");
       const confirmError = document.getElementById("confirm-error");
       const formError = document.getElementById("form-error");
+
+      const logoInput = document.getElementById("org-logo");
+      const uploadLogoButton = document.getElementById("upload-logo");
 
       const setText = (el, value) => {
         el.textContent = value || "";
@@ -663,6 +654,12 @@
         btn.addEventListener("click", () => setTopic(btn.getAttribute("data-topic")));
       });
 
+      if (logoInput && uploadLogoButton) {
+        uploadLogoButton.addEventListener("click", () => {
+          logoInput.click();
+        });
+      }
+
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!validate()) return;
@@ -672,8 +669,7 @@
         setFormError("");
 
         try {
-          const fullName = `${first.value.trim()} ${last.value.trim()}`.trim();
-          await window.Morpheus.register(email.value.trim(), password.value, fullName, DEFAULT_ROLE);
+          await window.Morpheus.register(email.value.trim(), password.value, "", DEFAULT_ROLE);
           window.location.href = AFTER_REGISTER_URL;
         } catch (error) {
           setFormError(error?.message || "Registration failed. Please try again.");
