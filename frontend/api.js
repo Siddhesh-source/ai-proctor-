@@ -179,6 +179,10 @@ async function sendFrame(session_id, frame_base64) {
   return apiCall('POST', '/proctoring/frame', { session_id, frame_base64 });
 }
 
+async function runCode(code, language, stdin = '') {
+  return apiCall('POST', '/exams/run-code', { code, language, stdin });
+}
+
 async function sendAudio(session_id, voice_energy, keywords_detected = []) {
   return apiCall('POST', '/proctoring/audio', { session_id, voice_energy, keywords_detected });
 }
@@ -284,6 +288,7 @@ window.Morpheus = {
   finishExam,
   createExam,
   sendFrame,
+  runCode,
   sendAudio,
   sendAudioStt,
   sendRaf,

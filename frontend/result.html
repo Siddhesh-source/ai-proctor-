@@ -535,7 +535,35 @@
 
         const renderBreakdown = (response) => {
           const bd = response.grading_breakdown;
-          if (!bd || response.question_type !== "subjective") return "";
+          if (!bd) return "";
+
+          // Coding question breakdown
+          if (response.question_type === "code") {
+            const passed = bd.passed ?? 0;
+            const total  = bd.total  ?? 0;
+            const pct    = total ? Math.round((passed / total) * 100) : 0;
+            const cls    = barFillClass(pct);
+            const rows   = (bd.results || []).map((r, i) => `
+              <div style="padding:6px 8px;border-left:3px solid ${r.passed ? '#5d5' : '#f55'};background:rgba(${r.passed ? '85,221,85' : '255,85,85'},0.05);border-radius:0 6px 6px 0;margin-bottom:4px;font-size:11px;font-family:monospace">
+                <span style="color:${r.passed ? '#5d5' : '#f55'}">${r.passed ? '✓' : '✗'} Case ${i+1}</span>
+                &nbsp;·&nbsp;Input: <code>${escapeHtml(r.input||'(none)')}</code>
+                &nbsp;·&nbsp;Expected: <code>${escapeHtml(r.expected)}</code>
+                &nbsp;·&nbsp;Got: <code>${escapeHtml(r.got)}</code>
+                ${r.stderr ? `<div style="color:#fa5;margin-top:2px">stderr: ${escapeHtml(r.stderr)}</div>` : ''}
+              </div>`).join('');
+            return `
+              <div class="breakdown-bar-wrap" style="margin-top:10px">
+                <div style="font-size:11px;color:#888;margin-bottom:6px">Test Cases: ${passed}/${total} passed</div>
+                <div class="breakdown-bar-row">
+                  <span>Score</span>
+                  <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+                  <span>${pct}%</span>
+                </div>
+                <div style="margin-top:10px">${rows}</div>
+              </div>`;
+          }
+
+          if (response.question_type !== "subjective") return "";
 
           const rows = [
             { label: "Semantic", value: bd.semantic ?? 0 },
