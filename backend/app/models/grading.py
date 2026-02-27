@@ -47,8 +47,11 @@ JUDGE0_LANGUAGE_IDS = {
     "c#":         51,
 }
 
-JUDGE0_HOST = os.getenv("JUDGE0_API_HOST", "judge0-ce.p.rapidapi.com")
-JUDGE0_KEY  = os.getenv("JUDGE0_API_KEY", "")
+def _judge0_host() -> str:
+    return os.getenv("JUDGE0_API_HOST", "judge0-ce.p.rapidapi.com")
+
+def _judge0_key() -> str:
+    return os.getenv("JUDGE0_API_KEY", "")
 
 
 def grade_mcq(
@@ -100,7 +103,10 @@ async def run_code_judge0(code: str, language: str, stdin: str = "") -> dict:
     """Run code via Judge0 RapidAPI. Returns {stdout, stderr, exit_code}."""
     import base64
 
-    if not JUDGE0_KEY:
+    key  = _judge0_key()
+    host = _judge0_host()
+
+    if not key:
         return {"stdout": "", "stderr": "JUDGE0_API_KEY not set in .env", "exit_code": -1}
 
     lang_id = _resolve_judge0_language(language)
@@ -110,13 +116,13 @@ async def run_code_judge0(code: str, language: str, stdin: str = "") -> dict:
         "stdin": base64.b64encode(stdin.encode()).decode() if stdin else "",
     })
     headers = {
-        "x-rapidapi-key": JUDGE0_KEY,
-        "x-rapidapi-host": JUDGE0_HOST,
+        "x-rapidapi-key": key,
+        "x-rapidapi-host": host,
         "Content-Type": "application/json",
     }
 
     def _send() -> dict:
-        conn = http.client.HTTPSConnection(JUDGE0_HOST, timeout=30)
+        conn = http.client.HTTPSConnection(host, timeout=30)
         conn.request("POST", "/submissions?base64_encoded=true&wait=true&fields=*", payload, headers)
         res = conn.getresponse()
         return json.loads(res.read().decode("utf-8"))
