@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Environment
+.env
+*.env
+
+# ChromaDB
+backend/chroma_db/
+chroma_db/
+~/.morpheus/
+
+# ML models
+*.pt
+*.onnx
+
+# Pytest
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
