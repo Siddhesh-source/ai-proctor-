@@ -207,6 +207,14 @@ async function getExamResults(exam_id) {
   return apiCall('GET', `/results/exam/${exam_id}`);
 }
 
+async function getExamLogs(exam_id) {
+  return apiCall('GET', `/proctoring/exam/${exam_id}/logs`);
+}
+
+async function getLiveFrame(session_id) {
+  return apiCall('GET', `/proctoring/session/${session_id}/frame`);
+}
+
 function connectProctoringWS(session_id, onMessage) {
   const token = getToken();
   const wsBase = activeApiOrigin.replace('http://', 'ws://').replace('https://', 'wss://');
@@ -246,8 +254,10 @@ window.Morpheus = {
   sendRaf,
   sendViolation,
   getIntegrity,
+  getLiveFrame,
   getResult,
   getExamResults,
+  getExamLogs,
   connectProctoringWS,
   getToken,
   setToken,

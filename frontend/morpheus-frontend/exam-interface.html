@@ -62,6 +62,28 @@
         pointer-events: none;
       }
 
+      #anti-screenshot-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+
+      #anti-screenshot-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
       h1,
       h2,
       h3,
@@ -526,6 +548,7 @@
     </style>
   </head>
   <body class="secure-zone">
+    <div id="anti-screenshot-overlay">Recording in progress</div>
     <div class="layout">
       <header class="topbar">
         <div class="topbar-left">
@@ -631,7 +654,9 @@
 
         if (!window.Morpheus.requireAuth("student")) return;
 
-        const exam_id = new URLSearchParams(window.location.search).get("exam_id");
+        const exam_id =
+          new URLSearchParams(window.location.search).get("exam_id") ||
+          sessionStorage.getItem("morpheus_exam_id");
         const session_id = sessionStorage.getItem("morpheus_session_id");
         if (!session_id) {
           window.location.href = "student.html";
@@ -663,6 +688,13 @@
           cancelSubmit: document.getElementById("cancel-submit"),
           confirmSubmit: document.getElementById("confirm-submit"),
         };
+
+        if (!exam_id) {
+          if (els.questionText) {
+            els.questionText.textContent = "Invalid exam_id";
+          }
+          return;
+        }
 
         const renderGrid = () => {
           if (!els.grid) return;
@@ -844,6 +876,7 @@
 
         document.addEventListener("contextmenu", (e) => e.preventDefault());
 
+        // --- Copy/paste logging ---
         let lastCopyPasteViolation = 0;
         const handleCopyPaste = (e) => {
           e.preventDefault();
@@ -854,14 +887,31 @@
             showViolationToast("copy_paste");
           }
         };
-        document.addEventListener("copy", handleCopyPaste);
-        document.addEventListener("cut", handleCopyPaste);
-        document.addEventListener("paste", handleCopyPaste);
-        // ── Foolproof tab-switch detection (4 independent signals) ──────
-        // Extensions like "Always Active" can fake visibilityState and keep
-        // RAF running — we defeat them by combining 4 signals that cannot
-        // all be spoofed simultaneously.
+        _addEvent.call(document, "copy", handleCopyPaste);
+        _addEvent.call(document, "cut", handleCopyPaste);
+        _addEvent.call(document, "paste", handleCopyPaste);
 
+        // --- Screenshot detection (teammate) ---
+        const overlay = document.getElementById("anti-screenshot-overlay");
+        const showOverlay = () => { if (overlay) overlay.classList.add("show"); };
+        const hideOverlay = () => { if (overlay) overlay.classList.remove("show"); };
+
+        _addEvent.call(document, "keydown", (event) => {
+          if (event.key === "PrintScreen") {
+            showOverlay();
+            window.Morpheus.sendViolation(session_id, "screenshot_attempt", 0.6, { key: "PrintScreen" }).catch(() => {});
+            showViolationToast("screenshot_attempt");
+            _setTimeout(hideOverlay, 1500);
+          }
+          if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
+            showOverlay();
+            window.Morpheus.sendViolation(session_id, "screenshot_attempt", 0.6, { key: "Ctrl+Shift+S" }).catch(() => {});
+            showViolationToast("screenshot_attempt");
+            _setTimeout(hideOverlay, 1500);
+          }
+        });
+
+        // ── Foolproof tab-switch detection (4 independent signals) ──────
         let lastTabViolation = 0;
         const TAB_COOLDOWN_MS = 8000;
 
@@ -869,20 +919,22 @@
           const now = _dateNow();
           if (now - lastTabViolation < TAB_COOLDOWN_MS) return;
           lastTabViolation = now;
+          showOverlay();
+          _setTimeout(hideOverlay, 2000);
           window.Morpheus.sendViolation(session_id, "tab_switch", confidence, { source }).catch(() => {});
           showViolationToast("tab_switch");
         };
 
-        // Signal 1: visibilitychange (kept — still fires for most cases)
+        // Signal 1: visibilitychange
         _addEvent.call(document, "visibilitychange", () => {
           if (isHidden()) {
             fireTabSwitch(0.95, "visibilitychange");
+          } else {
+            hideOverlay();
           }
         });
 
         // Signal 2: window.blur / window.focus
-        // Lower-level OS event — extensions cannot intercept it.
-        // 2-second grace period avoids false positives from clicking browser chrome.
         let blurTimer = null;
         _addEvent.call(window, "blur", () => {
           blurTimer = _setTimeout(() => {
@@ -893,11 +945,10 @@
         });
         _addEvent.call(window, "focus", () => {
           if (blurTimer) { _clearTimeout(blurTimer); blurTimer = null; }
+          hideOverlay();
         });
 
         // Signal 3: document.hasFocus() polling every 500ms
-        // Faking visibilityState does NOT affect hasFocus().
-        // Requires 2 consecutive false readings (1 second) to avoid flicker.
         let focusMissCount = 0;
         _setInterval(() => {
           if (!_hasFocus()) {
@@ -912,9 +963,6 @@
         }, 500);
 
         // Signal 4: performance.now() drift inside RAF
-        // RAF is throttled to ~1fps in background tabs even with extensions.
-        // We track a rolling average of the last 5 frame deltas.
-        // If avg > 200ms while tab claims to be visible → contradiction → flag.
         const rafDeltas = [];
         let rafLast = _perfNow();
         const rafLoop = (now) => {
@@ -963,6 +1011,7 @@
               copy_paste: "Copy/paste is not allowed during the exam",
               multiple_monitors: "Multiple monitors detected",
               tab_switch: "Tab switch detected",
+              screenshot_attempt: "Screenshot attempt detected",
             }[violation] || "Violation detected";
           let toast = document.getElementById("violation-toast");
           if (!toast) {
@@ -987,7 +1036,7 @@
           }, 2500);
         };
 
-        const showCriticalWarning = () => {
+        const showCriticalWarning = (message = "Integrity score critical") => {
           let warning = document.getElementById("critical-warning");
           if (!warning) {
             warning = document.createElement("div");
@@ -1004,11 +1053,41 @@
             warning.style.zIndex = "40";
             document.body.appendChild(warning);
           }
-          warning.textContent = "Integrity score critical";
+          warning.textContent = message;
         };
 
-        function startProctoring(id) {
-          const videoEl = document.querySelector("video");
+        const handleCriticalIntegrity = async (score) => {
+          if (finishing) return;
+          if (score == null || score >= 30) return;
+          finishing = true;
+          showCriticalWarning("Integrity too low. Ending exam.");
+          try {
+            await window.Morpheus.finishExam(exam_id, session_id);
+          } catch (error) {
+            // ignore
+          }
+          window.location.href = `result.html?session_id=${encodeURIComponent(session_id)}`;
+        };
+
+        async function startProctoring(id) {
+          let videoEl = document.querySelector("video");
+          if (!videoEl) {
+            videoEl = document.createElement("video");
+            videoEl.autoplay = true;
+            videoEl.muted = true;
+            videoEl.playsInline = true;
+            videoEl.style.position = "fixed";
+            videoEl.style.width = "1px";
+            videoEl.style.height = "1px";
+            videoEl.style.opacity = "0";
+            document.body.appendChild(videoEl);
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+              videoEl.srcObject = stream;
+            } catch (error) {
+              // ignore camera errors
+            }
+          }
           const canvas = document.createElement("canvas");
           canvas.width = 320;
           canvas.height = 240;
@@ -1016,10 +1095,19 @@
 
           _setInterval(() => {
             try {
-              if (!videoEl) return;
+              if (!videoEl || videoEl.readyState < 2) return;
               ctx.drawImage(videoEl, 0, 0, 320, 240);
               const frame_base64 = canvas.toDataURL("image/jpeg", 0.5).split(",")[1];
-              window.Morpheus.sendFrame(id, frame_base64).catch(() => {});
+              window.Morpheus
+                .sendFrame(id, frame_base64)
+                .then((response) => {
+                  const violations = response?.violations || [];
+                  violations.forEach((violation) => showViolationToast(violation));
+                  if (response?.integrity_score != null) {
+                    handleCriticalIntegrity(response.integrity_score);
+                  }
+                })
+                .catch(() => {});
             } catch (e) {
               // ignore
             }
@@ -1038,7 +1126,14 @@
                 const voiceBand = Array.from(data.slice(4, 20));
                 const voice_energy =
                   (voiceBand.reduce((a, b) => a + b, 0) / (voiceBand.length * 255)) * 100;
-                window.Morpheus.sendAudio(id, voice_energy).catch(() => {});
+                window.Morpheus
+                  .sendAudio(id, voice_energy)
+                  .then((response) => {
+                    if (response?.violation) {
+                      showViolationToast("speech_detected");
+                    }
+                  })
+                  .catch(() => {});
               }, 5000);
             })
             .catch(() => {});
@@ -1177,8 +1272,8 @@
               showViolationToast(data.violation);
             }
 
-            if (data?.integrity_score != null && data.integrity_score < 30) {
-              showCriticalWarning();
+            if (data?.integrity_score != null) {
+              handleCriticalIntegrity(data.integrity_score);
             }
           });
         }
