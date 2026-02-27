@@ -1,6 +1,7 @@
 import random
+import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import and_, select
@@ -25,6 +26,8 @@ from app.schemas.exam import (
 
 router = APIRouter(prefix="/exams", tags=["exams"])
 
+logger = logging.getLogger(__name__)
+
 
 def _require_role(user: User, role: str) -> None:
     if user.role != role:
@@ -43,13 +46,29 @@ async def create_exam(
     current_user: User = Depends(get_current_user),
 ) -> ExamCreateResponse:
     _require_role(current_user, "professor")
+    start_time = payload.start_time
+    end_time = payload.end_time
+    if start_time.tzinfo is None:
+        start_time = start_time.replace(tzinfo=timezone.utc)
+    if end_time.tzinfo is None:
+        end_time = end_time.replace(tzinfo=timezone.utc)
+    logger.info(
+        "Create exam request",
+        extra={
+            "professor_id": str(current_user.id),
+            "title": payload.title,
+            "type": payload.type,
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+        },
+    )
     exam = Exam(
         professor_id=current_user.id,
         title=payload.title,
         type=payload.type,
         duration_minutes=payload.duration_minutes,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
+        start_time=start_time,
+        end_time=end_time,
         negative_marking=payload.negative_marking,
         randomize_questions=payload.randomize_questions,
     )
@@ -70,6 +89,14 @@ async def create_exam(
     ]
     db.add_all(questions)
     await db.commit()
+    logger.info(
+        "Exam created",
+        extra={
+            "exam_id": str(exam.id),
+            "professor_id": str(current_user.id),
+            "question_count": len(questions),
+        },
+    )
     return ExamCreateResponse(exam_id=str(exam.id), question_count=len(questions))
 
 
@@ -79,7 +106,7 @@ async def list_available_exams(
     current_user: User = Depends(get_current_user),
 ) -> list[ExamResponse]:
     _require_role(current_user, "student")
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     result = await db.execute(
         select(Exam).where(
             and_(
@@ -90,6 +117,26 @@ async def list_available_exams(
         )
     )
     exams = result.scalars().all()
+    logger.info(
+        "Available exams query",
+        extra={
+            "student_id": str(current_user.id),
+            "now": now.isoformat(),
+            "count": len(exams),
+        },
+    )
+    active_result = await db.execute(select(Exam).where(Exam.is_active.is_(True)))
+    active_exams = active_result.scalars().all()
+    for exam in active_exams:
+        logger.info(
+            "Active exam window",
+            extra={
+                "exam_id": str(exam.id),
+                "start_time": exam.start_time.isoformat(),
+                "end_time": exam.end_time.isoformat(),
+                "visible": exam in exams,
+            },
+        )
     return [
         ExamResponse(
             id=str(exam.id),

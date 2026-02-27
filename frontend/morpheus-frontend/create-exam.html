@@ -1001,24 +1001,35 @@
 
         const normalizeExamType = (value) => {
           if (value === "coding") return "code";
-          if (value === "mixed") return null;
           return value;
         };
 
         const buildPayload = () => {
           const examType = normalizeExamType(els.type.value);
           if (!examType) {
-            throw new Error("Mixed exam type is not supported by the backend.");
+            throw new Error("Exam type is required.");
+          }
+          if (!els.title.value.trim()) {
+            throw new Error("Exam title is required.");
           }
           const duration = Number.parseInt(els.duration.value, 10);
           if (!Number.isFinite(duration)) throw new Error("Duration is required.");
+          const now = new Date();
+          const startAt = els.startAt.value ? new Date(els.startAt.value) : new Date(now.getTime());
+          const endAt = els.endAt.value
+            ? new Date(els.endAt.value)
+            : new Date(now.getTime() + duration * 60000);
+          if (!Number.isFinite(startAt.getTime())) throw new Error("Start time is required.");
+          if (!Number.isFinite(endAt.getTime())) throw new Error("End time is required.");
+          if (endAt.getTime() <= startAt.getTime()) throw new Error("End time must be after start time.");
+          if (!questions.length) throw new Error("Add at least one question.");
 
           return {
             title: els.title.value.trim(),
             type: examType,
             duration_minutes: duration,
-            start_time: new Date(els.startAt.value).toISOString(),
-            end_time: new Date(els.endAt.value).toISOString(),
+            start_time: startAt.toISOString(),
+            end_time: endAt.toISOString(),
             negative_marking: els.toggleNegative.checked ? parseFloat(els.negativeMarks.value || "0") : 0,
             randomize_questions: els.toggleRandom.checked,
             questions: questions.map((q, i) => {
@@ -1035,6 +1046,8 @@
                 };
                 const idx = Number.parseInt(q.correct_answer, 10);
                 correctAnswer = Number.isFinite(idx) ? q.options[idx] || "" : "";
+              } else {
+                correctAnswer = correctAnswer || "";
               }
 
               if (q.type === "subjective") {
@@ -1051,7 +1064,7 @@
                 correct_answer: correctAnswer,
                 keywords,
                 marks: Number.parseFloat(q.marks) || 0,
-                order: i,
+                order: i + 1,
               };
             }),
           };
@@ -1111,12 +1124,18 @@
 
         if (els.btnPublish) {
           els.btnPublish.addEventListener("click", async () => {
+            els.btnPublish.disabled = true;
             try {
               const payload = buildPayload();
-              await window.Morpheus.createExam(payload);
+              const result = await window.Morpheus.createExam(payload);
+              if (!result?.exam_id) {
+                throw new Error("Exam created but no id returned.");
+              }
+              showToast("Created", "Exam published successfully.");
               window.location.href = "professor.html";
             } catch (error) {
               showToast("Error", error?.message || "Failed to create exam.");
+              els.btnPublish.disabled = false;
             }
           });
         }

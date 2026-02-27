@@ -118,7 +118,7 @@ async function finishExam(exam_id, session_id) {
 }
 
 async function createExam(examData) {
-  return apiCall('POST', '/exams/', examData);
+  return apiCall('POST', '/exams', examData);
 }
 
 async function sendFrame(session_id, frame_base64) {

@@ -305,6 +305,20 @@
         display: none;
       }
 
+      .secure-zone {
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
+      }
+
+      .secure-zone img,
+      .secure-zone video,
+      .secure-zone canvas {
+        pointer-events: none;
+      }
+
       @media (max-width: 960px) {
         .title {
           font-size: 42px;
@@ -313,7 +327,7 @@
     </style>
   </head>
   <body>
-    <div class="page">
+    <div class="page secure-zone">
       <div class="container">
         <header class="header">
           <div>
@@ -393,9 +407,9 @@
                   <span id="step-3-status" class="status-pill warning">Locked</span>
                 </div>
                 <ul class="rules">
-                  <li>Duration: 90 minutes</li>
-                  <li>Questions: 50 total</li>
-                  <li>Marking: +2 correct, -0.5 incorrect</li>
+                  <li>Duration: <span id="rule-duration">—</span></li>
+                  <li>Questions: <span id="rule-questions">—</span></li>
+                  <li>Marking: <span id="rule-marking">—</span></li>
                   <li>Proctoring notice: camera + mic are recorded.</li>
                   <li>Fullscreen is required before starting.</li>
                 </ul>
@@ -418,7 +432,7 @@
         if (!window.Morpheus.requireAuth("student")) return;
 
         const params = new URLSearchParams(window.location.search);
-        const exam_id = params.get("exam_id");
+        let exam_id = params.get("exam_id") || sessionStorage.getItem("morpheus_exam_id");
 
         const els = {
           checkCamera: document.getElementById("check-camera"),
@@ -427,6 +441,9 @@
           step1Status: document.getElementById("step-1-status"),
           step2Status: document.getElementById("step-2-status"),
           step3Status: document.getElementById("step-3-status"),
+          ruleDuration: document.getElementById("rule-duration"),
+          ruleQuestions: document.getElementById("rule-questions"),
+          ruleMarking: document.getElementById("rule-marking"),
           step2: document.getElementById("step-2"),
           step3: document.getElementById("step-3"),
           cameraPass: document.getElementById("camera-pass"),
@@ -442,7 +459,9 @@
           cameraOk: false,
           micOk: false,
           faceVerified: false,
+          step3Ready: false,
           stream: null,
+          micStream: null,
           video: null,
         };
 
@@ -491,7 +510,56 @@
         const unlockStep3 = () => {
           els.step3.setAttribute("aria-disabled", "false");
           els.requestFullscreen.disabled = false;
-          setStatus(els.step3Status, "Ready", "ready");
+          state.step3Ready = true;
+          updateStartAvailability();
+        };
+
+        const updateStartAvailability = () => {
+          const hasExam = !!exam_id;
+          if (!hasExam) {
+            els.startExam.disabled = true;
+            setStatus(els.step3Status, "Missing exam", "error");
+            return;
+          }
+          const inFullscreen = !!document.fullscreenElement;
+          els.startExam.disabled = !(state.step3Ready && inFullscreen);
+          if (state.step3Ready) {
+            setStatus(els.step3Status, inFullscreen ? "Ready" : "Fullscreen required", inFullscreen ? "ready" : "warning");
+          }
+        };
+
+        const loadExamDetails = async () => {
+          try {
+            const exams = await window.Morpheus.getAvailableExams();
+            let exam = exams.find((item) => item.id === exam_id);
+            if (!exam && exams.length === 1) {
+              exam = exams[0];
+              exam_id = exam.id;
+            }
+            if (!exam && exams.length > 0 && !exam_id) {
+              exam = exams[0];
+              exam_id = exam.id;
+            }
+            if (!exam) {
+              updateStartAvailability();
+              return;
+            }
+            sessionStorage.setItem("morpheus_exam_id", exam_id);
+            if (els.ruleDuration) {
+              els.ruleDuration.textContent = `${exam.duration_minutes} minutes`;
+            }
+            if (els.ruleQuestions) {
+              const count = exam.question_count ?? exam.questions_count ?? "—";
+              els.ruleQuestions.textContent = count === "—" ? "—" : `${count} total`;
+            }
+            if (els.ruleMarking) {
+              const neg = Number(exam.negative_marking || 0);
+              els.ruleMarking.textContent = neg > 0 ? `-${neg} incorrect` : "No negative marking";
+            }
+            updateStartAvailability();
+          } catch {
+            updateStartAvailability();
+          }
         };
 
         const loadFaceMesh = () =>
@@ -506,6 +574,19 @@
             script.onerror = () => reject(new Error("Failed to load FaceMesh"));
             document.body.appendChild(script);
           });
+
+        const requestMicrophone = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            state.micStream = stream;
+            stream.getTracks().forEach((track) => track.stop());
+            state.micOk = true;
+            setStatus(els.checkMic, "Ready", "ready");
+          } catch {
+            state.micOk = false;
+            setStatus(els.checkMic, "Fail", "error");
+          }
+        };
 
         const captureFaceEmbedding = async () => {
           await loadFaceMesh();
@@ -578,6 +659,7 @@
               setStatus(els.step1Status, "Passed", "ready");
               setStatus(els.checkCamera, "Ready", "ready");
               unlockStep2();
+              requestMicrophone();
             })
             .catch(() => {
               state.cameraOk = false;
@@ -635,15 +717,23 @@
           if (document.fullscreenElement) return;
           try {
             await document.documentElement.requestFullscreen();
-            els.startExam.disabled = false;
+            updateStartAvailability();
           } catch (error) {
-            els.startExam.disabled = true;
+            updateStartAvailability();
           }
+        });
+
+        document.addEventListener("fullscreenchange", () => {
+          updateStartAvailability();
         });
 
         els.startExam.addEventListener("click", async () => {
           if (!exam_id) {
             setStatus(els.step3Status, "Missing exam", "error");
+            return;
+          }
+          if (!document.fullscreenElement) {
+            setStatus(els.step3Status, "Fullscreen required", "warning");
             return;
           }
           try {
@@ -655,6 +745,8 @@
             setStatus(els.step3Status, error?.message || "Start failed", "error");
           }
         });
+
+        loadExamDetails();
       })();
     </script>
   </body>

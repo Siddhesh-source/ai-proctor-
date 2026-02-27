@@ -384,6 +384,9 @@
           activeBody.querySelectorAll("button[data-exam-id]").forEach((button) => {
             button.addEventListener("click", () => {
               const examId = button.getAttribute("data-exam-id");
+              if (examId) {
+                sessionStorage.setItem("morpheus_exam_id", examId);
+              }
               window.location.href = `pre-exam-lobby.html?exam_id=${examId}`;
             });
           });

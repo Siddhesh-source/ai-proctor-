@@ -1,3 +1,4 @@
+import logging
 import math
 import uuid
 
@@ -14,6 +15,8 @@ from app.schemas.auth import FaceVerifyRequest, LoginRequest, RegisterRequest, T
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+logger = logging.getLogger(__name__)
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -65,6 +68,7 @@ async def face_verify(
     payload: FaceVerifyRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    logger.info("Face verify request", extra={"user_id": payload.user_id, "length": len(payload.face_embedding)})
     try:
         user_id = uuid.UUID(payload.user_id)
     except ValueError as exc:
@@ -77,9 +81,11 @@ async def face_verify(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     stored_embedding = get_face_embedding(str(user.id))
     if stored_embedding is None:
+        logger.info("Face embedding registered", extra={"user_id": str(user.id)})
         upsert_face_embedding(str(user.id), payload.face_embedding)
         return {"registered": True}
     similarity = _cosine_similarity(stored_embedding, payload.face_embedding)
+    logger.info("Face similarity computed", extra={"user_id": str(user.id), "similarity": similarity})
     if similarity > 0.85:
         return {"verified": True}
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Face mismatch")

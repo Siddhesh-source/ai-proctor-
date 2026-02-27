@@ -478,7 +478,7 @@ def test_complete_flow():
     # Test Feature 3: Email Delivery
     if not test_email_delivery(student_token, session_id):
         print_warning("Email test failed or skipped")
-    
+            
     # Summary
     print_header("TEST SUMMARY")
     print_success("✅ Time Tracking: WORKING")

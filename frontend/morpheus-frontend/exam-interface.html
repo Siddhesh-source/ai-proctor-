@@ -46,6 +46,20 @@
         min-height: 100vh;
       }
 
+      .secure-zone {
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-user-drag: none;
+      }
+
+      .secure-zone img,
+      .secure-zone video,
+      .secure-zone canvas {
+        pointer-events: none;
+      }
+
       h1,
       h2,
       h3,
@@ -509,7 +523,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="secure-zone">
     <div class="layout">
       <header class="topbar">
         <div class="topbar-left">
