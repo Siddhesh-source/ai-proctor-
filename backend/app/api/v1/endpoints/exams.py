@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import AsyncSessionLocal, get_db
 from app.models.db import Exam, Question, Response, Session as ExamSession, User
-from app.models.grading import grade_session
+from app.models.grading import grade_session, run_code_piston
 from app.schemas.exam import (
     ExamCreate,
     ExamCreateResponse,
@@ -88,6 +88,8 @@ async def create_exam(
             keywords=item.keywords,
             marks=item.marks,
             order_index=item.order,
+            code_language=item.code_language,
+            test_cases=item.test_cases,
         )
         for item in payload.questions
     ]
@@ -265,6 +267,8 @@ async def get_exam_questions(
             keywords=question.keywords,
             marks=question.marks,
             order=question.order_index,
+            code_language=question.code_language,
+            test_cases=question.test_cases,
         )
         for question in questions
     ]
@@ -399,3 +403,25 @@ async def finish_exam(
     await db.commit()
     background_tasks.add_task(grade_session_background, session_uuid)
     return FinishExamResponse(status="grading")
+
+
+@router.post("/run-code")
+async def run_code(
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Execute code via Piston API. Used by student for test runs during exam."""
+    code = payload.get("code", "")
+    language = payload.get("language", "")
+    stdin = payload.get("stdin", "")
+    if not code.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="code required")
+    if not language:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="language required")
+    try:
+        result = await run_code_piston(code, language, stdin)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Code execution failed") from exc
+    return result

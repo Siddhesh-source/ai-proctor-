@@ -1062,6 +1062,8 @@
           options: ["", "", "", ""],
           correct_answer: "",
           keywords: "",
+          code_language: "python",
+          test_cases: [],
         });
 
         let questions = [];
@@ -1168,9 +1170,30 @@
                 </div>
 
                 <div data-section="code" style="display:${isCode ? "grid" : "none"}; gap: 12px;">
+                  <div class="field span-4">
+                    <label>Language</label>
+                    <select data-role="q-code-language">
+                      ${["python","javascript","typescript","java","c","c++","go","rust","ruby","kotlin","php"].map(l =>
+                        `<option value="${l}" ${(q.code_language||"python")===l?"selected":""}>${l}</option>`
+                      ).join("")}
+                    </select>
+                  </div>
                   <div class="field span-12">
-                    <label>Expected output</label>
-                    <textarea data-role="q-correct-text" placeholder="Expected output">${escapeHtml(q.correct_answer || "")}</textarea>
+                    <label>Starter code (optional — shown to student)</label>
+                    <textarea data-role="q-correct-text" placeholder="def solution(n):\n    pass" style="font-family:monospace;font-size:13px">${escapeHtml(q.correct_answer || "")}</textarea>
+                  </div>
+                  <div class="field span-12">
+                    <label>Test Cases</label>
+                    <div data-role="q-test-cases" style="display:flex;flex-direction:column;gap:8px">
+                      ${(q.test_cases||[]).map((tc,ti) => `
+                        <div data-tc="${ti}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center">
+                          <input type="text" data-role="tc-input" placeholder="Input (stdin)" value="${escapeHtml(tc.input||"")}" />
+                          <input type="text" data-role="tc-expected" placeholder="Expected output" value="${escapeHtml(tc.expected_output||"")}" />
+                          <button type="button" data-role="tc-remove" style="padding:4px 10px;background:#f55;border:none;color:#fff;border-radius:6px;cursor:pointer">✕</button>
+                        </div>
+                      `).join("")}
+                    </div>
+                    <button type="button" data-role="tc-add" style="margin-top:8px;padding:6px 14px;background:#222;border:1px solid #444;color:#fff;border-radius:6px;cursor:pointer">+ Add test case</button>
                   </div>
                 </div>
               </div>
@@ -1252,6 +1275,13 @@
                   .filter(Boolean);
               }
 
+              let code_language = null;
+              let test_cases = null;
+              if (q.type === "code") {
+                code_language = q.code_language || "python";
+                test_cases = (q.test_cases || []).filter(tc => tc.expected_output !== undefined);
+              }
+
               return {
                 text: q.text,
                 type: q.type,
@@ -1260,6 +1290,8 @@
                 keywords,
                 marks: Number.parseFloat(q.marks) || 0,
                 order: i + 1,
+                code_language,
+                test_cases,
               };
             }),
           };
@@ -1320,13 +1352,33 @@
 
         if (els.questionList) {
           els.questionList.addEventListener("click", (event) => {
-            const btn = event.target.closest("button[data-action]");
-            if (!btn) return;
             const qEl = event.target.closest("[data-qid]");
             if (!qEl) return;
             const qid = qEl.getAttribute("data-qid");
-            if (btn.getAttribute("data-action") === "remove-question") {
-              removeQuestion(qid);
+            const question = questions.find(q => q.id === qid);
+
+            // Remove question button
+            const actionBtn = event.target.closest("button[data-action]");
+            if (actionBtn && actionBtn.getAttribute("data-action") === "remove-question") {
+              removeQuestion(qid); return;
+            }
+
+            // Add test case
+            if (event.target.closest("button[data-role='tc-add']")) {
+              if (!question) return;
+              question.test_cases = question.test_cases || [];
+              question.test_cases.push({ input: "", expected_output: "" });
+              renderAllQuestions(); return;
+            }
+
+            // Remove test case
+            const tcRemove = event.target.closest("button[data-role='tc-remove']");
+            if (tcRemove) {
+              if (!question) return;
+              const tcEl = tcRemove.closest("[data-tc]");
+              const ti = Number(tcEl.getAttribute("data-tc"));
+              question.test_cases.splice(ti, 1);
+              renderAllQuestions(); return;
             }
           });
 
@@ -1346,6 +1398,17 @@
               const idx = Number(event.target.getAttribute("data-option-index"));
               if (Number.isFinite(idx)) question.options[idx] = event.target.value;
             }
+            // Test case input sync
+            if (role === "tc-input" || role === "tc-expected") {
+              const tcEl = event.target.closest("[data-tc]");
+              if (tcEl) {
+                const ti = Number(tcEl.getAttribute("data-tc"));
+                if (!question.test_cases) question.test_cases = [];
+                if (!question.test_cases[ti]) question.test_cases[ti] = {};
+                if (role === "tc-input") question.test_cases[ti].input = event.target.value;
+                if (role === "tc-expected") question.test_cases[ti].expected_output = event.target.value;
+              }
+            }
           });
 
           els.questionList.addEventListener("change", (event) => {
@@ -1362,6 +1425,9 @@
             }
             if (role === "q-correct") {
               question.correct_answer = event.target.value;
+            }
+            if (role === "q-code-language") {
+              question.code_language = event.target.value;
             }
           });
         }

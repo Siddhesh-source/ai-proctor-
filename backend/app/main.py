@@ -1,5 +1,17 @@
 import logging
+import os as _os
+import pathlib as _pathlib
 import traceback
+
+# Load .env before any module-level os.getenv() calls
+_env_file = _pathlib.Path(__file__).parent.parent / ".env"
+if _env_file.exists():
+    with open(_env_file) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                _os.environ.setdefault(_k.strip(), _v.strip())
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware

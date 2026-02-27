@@ -12,6 +12,8 @@ class QuestionCreate(BaseModel):
     keywords: list[str] | None = None
     marks: float
     order: int
+    code_language: str | None = None
+    test_cases: list[dict] | None = None
 
 
 class ExamCreate(BaseModel):
@@ -48,6 +50,8 @@ class QuestionResponse(BaseModel):
     keywords: list[str] | None = None
     marks: float
     order: int
+    code_language: str | None = None
+    test_cases: list[dict] | None = None
 
 
 class ExamCreateResponse(BaseModel):

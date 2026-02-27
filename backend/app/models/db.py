@@ -64,6 +64,8 @@ class Question(Base):
     keywords: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     marks: Mapped[float] = mapped_column(Float, nullable=False)
     order_index: Mapped[int] = mapped_column("order", Integer, nullable=False)
+    code_language: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    test_cases: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
     exam: Mapped[Exam] = relationship("Exam", back_populates="questions")
     responses: Mapped[list["Response"]] = relationship("Response", back_populates="question")

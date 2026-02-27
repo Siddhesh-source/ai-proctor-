@@ -25,6 +25,10 @@ router = APIRouter(prefix="/proctoring", tags=["proctoring"])
 logger = logging.getLogger(__name__)
 LAST_FRAMES: dict[str, str] = {}
 
+# consecutive multi-person frame counter — fires only after N frames (~52% more lenient)
+MULTI_PERSON_FRAMES: dict[str, int] = {}
+MULTI_PERSON_THRESHOLD = 7
+
 VIOLATION_EXPLANATIONS = {
     "phone_detected": "Mobile device detected in the camera frame.",
     "gaze_away": "Student gaze away from screen beyond threshold.",
@@ -135,9 +139,15 @@ async def process_frame(payload: dict, db: AsyncSession = Depends(get_db)) -> di
         if "cell phone" in labels or "book" in labels:
             integrity_score = await _log_violation(db, session, "phone_detected", 0.9, {"labels": labels})
             violations.append("phone_detected")
+        sid = str(session.id)
         if person_count > 1:
-            integrity_score = await _log_violation(db, session, "multiple_faces", 0.85, {"person_count": person_count})
-            violations.append("multiple_faces")
+            MULTI_PERSON_FRAMES[sid] = MULTI_PERSON_FRAMES.get(sid, 0) + 1
+            if MULTI_PERSON_FRAMES[sid] >= MULTI_PERSON_THRESHOLD:
+                MULTI_PERSON_FRAMES[sid] = 0
+                integrity_score = await _log_violation(db, session, "multiple_faces", 0.85, {"person_count": person_count})
+                violations.append("multiple_faces")
+        else:
+            MULTI_PERSON_FRAMES[sid] = 0
     else:
         if "cell phone" in labels or "book" in labels:
             violations.append("phone_detected")
@@ -236,7 +246,7 @@ async def process_audio_stt(payload: dict, db: AsyncSession = Depends(get_db)) -
             },
         )
     else:
-        # No violation — log transcript silently in a non-penalising proctoring log
+        # No violation â€” log transcript silently in a non-penalising proctoring log
         # so professors can still review what was said
         if result["transcript"]:
             db.add(ProctoringLog(

@@ -7,8 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
     <style>
       :root {
         color-scheme: dark;
@@ -433,6 +432,54 @@
         font-family: "Fira Code", "Courier New", monospace;
       }
 
+      .monaco-wrap {
+        width: 100%;
+        height: 360px;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 8px;
+      }
+
+      .run-bar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .btn-run {
+        padding: 7px 20px;
+        background: rgba(68,209,127,0.85);
+        border: none;
+        border-radius: 8px;
+        color: #000;
+        font-weight: bold;
+        font-size: 13px;
+        cursor: pointer;
+        letter-spacing: 0.05em;
+      }
+
+      .btn-run:disabled { opacity: 0.5; cursor: default; }
+
+      .run-output {
+        background: #0d0d0d;
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 8px;
+        padding: 12px;
+        font-family: monospace;
+        font-size: 12px;
+        min-height: 60px;
+        max-height: 180px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        color: #ccc;
+      }
+
+      .run-output .pass { color: #5d5; }
+      .run-output .fail { color: #f55; }
+      .run-output .err  { color: #fa5; }
+
       .action-buttons {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -687,6 +734,71 @@
         let questions = [];
         let currentIndex = 0;
         let answers = {};
+
+        // Monaco editor instances keyed by question id
+        const _monacoEditors = {};
+
+        const _initMonaco = (qid, language, value) => {
+          const container = document.getElementById(`monaco-container-${qid}`);
+          if (!container) return;
+          if (_monacoEditors[qid]) { _monacoEditors[qid].dispose(); }
+
+          const monacoLang = {
+            python: "python", javascript: "javascript", typescript: "typescript",
+            java: "java", "c++": "cpp", cpp: "cpp", c: "c",
+            go: "go", rust: "rust", ruby: "ruby", kotlin: "kotlin",
+            php: "php", swift: "swift", r: "r",
+          }[language] || "plaintext";
+
+          require.config({ paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs" } });
+          require(["vs/editor/editor.main"], () => {
+            const editor = monaco.editor.create(container, {
+              value,
+              language: monacoLang,
+              theme: "vs-dark",
+              fontSize: 13,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              fontFamily: "'Fira Code', 'Courier New', monospace",
+            });
+            _monacoEditors[qid] = editor;
+            // Auto-save on change
+            editor.onDidChangeModelContent(() => {
+              answers[qid] = editor.getValue();
+            });
+
+            // Run code button
+            const runBtn = document.getElementById(`btn-run-${qid}`);
+            const outEl  = document.getElementById(`run-output-${qid}`);
+            if (runBtn && outEl) {
+              runBtn.addEventListener("click", async () => {
+                const code = editor.getValue();
+                if (!code.trim()) return;
+                runBtn.disabled = true;
+                runBtn.textContent = "Running...";
+                outEl.innerHTML = '<span style="color:#888">Executing...</span>';
+                try {
+                  const res = await window.Morpheus.runCode(code, language, "");
+                  const stdout = res.stdout || "";
+                  const stderr = res.stderr || "";
+                  let html = "";
+                  if (stdout) html += `<span class="pass">${escHtml(stdout)}</span>`;
+                  if (stderr) html += `<span class="err">${escHtml(stderr)}</span>`;
+                  if (!stdout && !stderr) html = '<span style="color:#666">(no output)</span>';
+                  outEl.innerHTML = html;
+                } catch (e) {
+                  outEl.innerHTML = `<span class="fail">Error: ${escHtml(e.message)}</span>`;
+                } finally {
+                  runBtn.disabled = false;
+                  runBtn.textContent = "▶ Run Code";
+                }
+              });
+            }
+          });
+        };
+
+        const escHtml = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
         let saveTimer = null;
         let remainingSeconds = 0;
         let timerHandle = null;
@@ -781,14 +893,26 @@
                   `;
                 })
                 .join("");
+            } else if (question.type === "code") {
+              const lang = question.code_language || "python";
+              const starter = question.correct_answer || "";
+              const existing = answers[question.id] || starter;
+              els.answerArea.innerHTML = `
+                <div class="monaco-wrap" id="monaco-container-${question.id}"></div>
+                <div class="run-bar">
+                  <button class="btn-run" id="btn-run-${question.id}">▶ Run Code</button>
+                  <span style="font-size:11px;color:#666">${lang}</span>
+                </div>
+                <div class="run-output" id="run-output-${question.id}">Output will appear here...</div>
+              `;
+              // Init Monaco after DOM settles
+              setTimeout(() => _initMonaco(question.id, lang, existing), 50);
             } else {
               const existing = answers[question.id] || "";
-              const textareaClass = question.type === "code" ? "code-area" : "";
               els.answerArea.innerHTML = `
                 <label class="option subjective">
                   <span>Answer</span>
                   <textarea
-                    class="${textareaClass}"
                     name="question-${question.id}"
                     placeholder="Type your answer"
                     spellcheck="false"
@@ -807,6 +931,10 @@
           if (question.type === "mcq") {
             const checked = els.answerArea.querySelector("input[type='radio']:checked");
             return checked ? checked.value : "";
+          }
+          if (question.type === "code") {
+            const editor = _monacoEditors[question.id];
+            return editor ? editor.getValue() : (answers[question.id] || "");
           }
           const textarea = els.answerArea.querySelector("textarea");
           return textarea ? textarea.value.trim() : "";
