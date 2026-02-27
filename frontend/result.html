@@ -366,7 +366,7 @@
             <div class="summary-grid">
               <div class="metric">
                 <span>Total Score</span>
-                <strong>—</strong>
+                <strong>— / —</strong>
               </div>
               <div class="metric">
                 <span>Percentage</span>
@@ -677,7 +677,16 @@
         };
 
         const loadSessionResult = async (id) => {
-          let result = await Morpheus.getResult(id);
+          let result;
+          try {
+            result = await Morpheus.getResult(id);
+          } catch (err) {
+            if (els.questionReview) {
+              els.questionReview.innerHTML = `<div class="muted">Could not load result: ${err.message || err}</div>`;
+            }
+            return;
+          }
+          if (!result) return;
 
           // If grading hasn't finished yet, poll a few times
           if (result.total_score === null && result.status === "completed") {
@@ -696,18 +705,21 @@
           document.getElementById("btn-download-pdf").style.display = "";
           document.getElementById("btn-email-report").style.display = "";
 
-          const totalScore = result.total_score ?? "—";
+          const totalScore = result.total_score ?? null;
           const totalMarks = (result.responses || []).reduce(
             (sum, response) => sum + (Number(response.marks) || 0),
             0,
           );
-          const percentage = totalMarks ? Math.round((Number(totalScore) / totalMarks) * 100) : "—";
+          const percentage = (totalMarks && totalScore !== null)
+            ? Math.round((Number(totalScore) / totalMarks) * 100)
+            : null;
           const integrity = result.integrity_score ?? "—";
           const tone = integrityTone(Number(result.integrity_score));
 
-          setMetric(totalMetric, `${formatScore(totalScore)} / ${formatScore(totalMarks || "—")}`);
-          setMetric(percentageMetric, formatPercent(percentage));
-          setMetric(integrityMetric, formatPercent(formatScore(integrity)));
+          const scoreDisplay = totalScore !== null ? `${totalScore} / ${totalMarks || "—"}` : `— / ${totalMarks || "—"}`;
+          setMetric(totalMetric, scoreDisplay);
+          setMetric(percentageMetric, percentage !== null ? `${percentage}%` : "—");
+          setMetric(integrityMetric, integrity !== "—" ? `${Math.round(Number(integrity))}%` : "—");
           if (integrityMetric) {
             const badge = integrityMetric.querySelector(".badge");
             if (badge) {
