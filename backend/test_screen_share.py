@@ -64,7 +64,7 @@ results['5_payload_stored'] = ('PASS' if conf_ok else 'FAIL', f"confidence={viol
 
 # Test 6: frontend JS — patch is present and in correct order
 import re
-html = open('../frontend/morpheus-frontend/exam-interface.html', encoding='utf-8').read()
+html = open('../frontend/exam-interface.html', encoding='utf-8').read()
 src = re.findall(r'<script(?![^>]*src)[^>]*>([\s\S]*?)</script>', html, re.IGNORECASE)[0]
 has_patch      = 'navigator.mediaDevices.getDisplayMedia =' in src
 has_capture    = '_getDisplayMedia' in src

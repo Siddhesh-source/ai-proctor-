@@ -88,7 +88,7 @@ for vtype, conf, payload in [
     )
 
 # ─── TEST F: No conflict markers in exam-interface.html ──────────────
-html_path = '../frontend/morpheus-frontend/exam-interface.html'
+html_path = '../frontend/exam-interface.html'
 html = open(html_path, encoding='utf-8').read()
 markers = [m for m in ['<<<<<<<', '=======', '>>>>>>>'] if m in html]
 results['F_no_conflict_markers'] = (
@@ -100,7 +100,7 @@ results['F_no_conflict_markers'] = (
 res = subprocess.run(
     ['node', '-e', r"""
 const fs = require('fs');
-const html = fs.readFileSync('../frontend/morpheus-frontend/exam-interface.html', 'utf8');
+const html = fs.readFileSync('../frontend/exam-interface.html', 'utf8');
 const scripts = [...html.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
 let ok = true;
 scripts.forEach((s,i) => { try { new Function(s); } catch(e) { ok=false; process.stdout.write('Block '+i+' ERR: '+e.message+'\n'); } });
