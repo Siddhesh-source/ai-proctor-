@@ -24,4 +24,8 @@ class TokenResponse(BaseModel):
 
 class FaceVerifyRequest(BaseModel):
     user_id: str
-    face_embedding: list[float]
+    face_embedding: list[float] | None = None
+    samples: dict[str, list[float]] | None = None
+    blink_count: int = 0
+    action_order: list[str] = Field(default_factory=list)
+    capture_duration_ms: int = 0

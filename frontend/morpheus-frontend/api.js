@@ -1,7 +1,35 @@
 const CONFIG = {
-  API_BASE: 'http://localhost:8000/api/v1',
-  WS_BASE: 'ws://localhost:8000/ws'
+  API_CANDIDATES: ['http://127.0.0.1:8000', 'http://localhost:8000']
 };
+
+let activeApiOrigin = sessionStorage.getItem('morpheus_api_origin') || CONFIG.API_CANDIDATES[0];
+
+async function canReachOrigin(origin) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1200);
+  try {
+    const response = await fetch(`${origin}/`, { method: 'GET', signal: controller.signal });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveApiOrigin(forceProbe = false) {
+  if (!forceProbe && activeApiOrigin) return activeApiOrigin;
+
+  for (const origin of CONFIG.API_CANDIDATES) {
+    if (await canReachOrigin(origin)) {
+      activeApiOrigin = origin;
+      sessionStorage.setItem('morpheus_api_origin', origin);
+      return activeApiOrigin;
+    }
+  }
+
+  return activeApiOrigin;
+}
 
 function getToken() {
   return sessionStorage.getItem('morpheus_token');
@@ -24,7 +52,8 @@ function setUser(user) {
 }
 
 async function apiCall(method, path, body = null, requiresAuth = true) {
-  const url = `${CONFIG.API_BASE}${path}`;
+  const origin = await resolveApiOrigin();
+  const url = `${origin}/api/v1${path}`;
   const headers = {
     'Content-Type': 'application/json'
   };
@@ -45,9 +74,24 @@ async function apiCall(method, path, body = null, requiresAuth = true) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, options);
+  let response;
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
+    try {
+      response = await fetch(url, options);
+      break;
+    } catch (error) {
+      if (attempt === 2 || attempt === 4) {
+        await resolveApiOrigin(true);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+    }
+  }
 
-  if (response.status === 401) {
+  if (!response) {
+    throw new Error('Backend not reachable. Start backend on 127.0.0.1:8000 and retry.');
+  }
+
+  if (response.status === 401 && !path.includes('/auth/face-verify')) {
     clearToken();
     window.location.href = 'login.html';
     return null;
@@ -85,8 +129,17 @@ async function getMe() {
   return apiCall('GET', '/auth/me');
 }
 
-async function faceVerify(user_id, face_embedding) {
-  return apiCall('POST', '/auth/face-verify', { user_id, face_embedding });
+async function faceVerify(user_id, faceData) {
+  if (faceData && faceData.samples) {
+    return apiCall('POST', '/auth/face-verify', {
+      user_id,
+      samples: faceData.samples,
+      blink_count: faceData.blink_count || 0,
+      action_order: faceData.action_order || [],
+      capture_duration_ms: faceData.capture_duration_ms || 0
+    }, false);
+  }
+  return apiCall('POST', '/auth/face-verify', { user_id, face_embedding: faceData }, false);
 }
 
 async function getAvailableExams() {
@@ -164,7 +217,8 @@ async function getLiveFrame(session_id) {
 
 function connectProctoringWS(session_id, onMessage) {
   const token = getToken();
-  const ws = new WebSocket(`${CONFIG.WS_BASE}/proctoring/${session_id}?token=${token}`);
+  const wsBase = activeApiOrigin.replace('http://', 'ws://').replace('https://', 'wss://');
+  const ws = new WebSocket(`${wsBase}/ws/proctoring/${session_id}?token=${token}`);
   ws.onmessage = (event) => onMessage(JSON.parse(event.data));
   ws.onerror = (e) => console.error('WS error', e);
   return ws;
