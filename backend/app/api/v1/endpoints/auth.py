@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.security import create_access_token, hash_password, verify_password
+from app.core.vector_store import get_face_embedding, upsert_face_embedding
 from app.models.db import User
 from app.schemas.auth import FaceVerifyRequest, LoginRequest, RegisterRequest, TokenResponse
 
@@ -74,13 +75,10 @@ async def face_verify(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    if user.face_embedding is None:
-        # Store as dict with 'embedding' key for JSONB compatibility
-        user.face_embedding = {"embedding": payload.face_embedding}
-        await db.commit()
+    stored_embedding = get_face_embedding(str(user.id))
+    if stored_embedding is None:
+        upsert_face_embedding(str(user.id), payload.face_embedding)
         return {"registered": True}
-    # Extract embedding from JSONB
-    stored_embedding = user.face_embedding.get("embedding", []) if isinstance(user.face_embedding, dict) else user.face_embedding
     similarity = _cosine_similarity(stored_embedding, payload.face_embedding)
     if similarity > 0.85:
         return {"verified": True}

@@ -20,15 +20,6 @@ async def create_tables():
     print(f"Database URL: {engine.url}\n")
     
     try:
-        # Try to create vector extension (optional)
-        async with engine.begin() as conn:
-            try:
-                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-                print("✅ Vector extension enabled")
-            except Exception as e:
-                print(f"⚠️  Vector extension not available: {e}")
-                print("   Continuing without vector support...\n")
-        
         # Create all tables
         async with engine.begin() as conn:
             print("Creating tables...")

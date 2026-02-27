@@ -97,14 +97,26 @@ async def get_exam_results(
         .order_by(desc(Result.total_score))
     )
     rows = results.all()
+    session_ids = [session.id for session, _, _ in rows]
+    violation_counts: dict[uuid.UUID, int] = {}
+    if session_ids:
+        violation_result = await db.execute(
+            select(ProctoringLog.session_id, func.count(ProctoringLog.id))
+            .where(ProctoringLog.session_id.in_(session_ids))
+            .group_by(ProctoringLog.session_id)
+        )
+        violation_counts = {row[0]: row[1] for row in violation_result.all()}
+
     return [
         {
+            "session_id": str(session.id),
             "student_name": user.full_name,
             "total_score": result.total_score if result else None,
             "integrity_score": (
                 result.integrity_score if result else session.integrity_score
             ),
             "status": session.status,
+            "violation_count": violation_counts.get(session.id, 0),
         }
         for session, result, user in rows
     ]

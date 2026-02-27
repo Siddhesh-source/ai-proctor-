@@ -107,6 +107,31 @@ async def list_available_exams(
     ]
 
 
+@router.get("/professor", response_model=list[ExamResponse])
+async def list_professor_exams(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[ExamResponse]:
+    _require_role(current_user, "professor")
+    result = await db.execute(select(Exam).where(Exam.professor_id == current_user.id))
+    exams = result.scalars().all()
+    return [
+        ExamResponse(
+            id=str(exam.id),
+            professor_id=str(exam.professor_id),
+            title=exam.title,
+            type=exam.type,
+            duration_minutes=exam.duration_minutes,
+            start_time=exam.start_time,
+            end_time=exam.end_time,
+            negative_marking=exam.negative_marking,
+            randomize_questions=exam.randomize_questions,
+            is_active=exam.is_active,
+        )
+        for exam in exams
+    ]
+
+
 @router.post("/{exam_id}/start", response_model=StartExamResponse)
 async def start_exam(
     exam_id: str,
