@@ -760,9 +760,10 @@
               const options = getOptionsArray(question.options);
               els.answerArea.innerHTML = options
                 .map((opt, idx) => {
-                  const label = typeof opt === "string" ? opt : opt.value;
-                  const value = typeof opt === "string" ? opt : opt.value;
-                  const prefix = typeof opt === "string" ? String.fromCharCode(65 + idx) : opt.key;
+                  const isString = typeof opt === "string";
+                  const label = isString ? opt : opt.value;
+                  const key = isString ? String.fromCharCode(65 + idx) : opt.key;
+                  const value = isString ? opt : key;
                   return `
                     <label class="option">
                       <input
@@ -771,7 +772,7 @@
                         value="${value}"
                         ${selected === value ? "checked" : ""}
                       />
-                      <span>${prefix}. ${label}</span>
+                      <span>${key}. ${label}</span>
                     </label>
                   `;
                 })
@@ -824,7 +825,7 @@
               console.log(`[EXAM] Answer saved OK:`, result);
               setSavingStatus("Saved");
             } catch (err) {
-              console.error(`[EXAM] Answer save FAILED for q=${questionId}:`, err.message);
+              console.error(`[EXAM] Answer save FAILED for q=${questionId}:`, err);
               setSavingStatus("Not Saved");
             }
           }, 1000);
@@ -1156,7 +1157,6 @@
           ws: null,
           pc: null,
           webcamStream: null,
-          screenStream: null,
           trackIds: new Set(),
           started: false,
         };
@@ -1180,27 +1180,18 @@
           if (!webRtcState.webcamStream) {
             webRtcState.webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
           }
-          if (!webRtcState.screenStream) {
-            try {
-              webRtcState.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            } catch (error) {
-              console.warn("[WEBRTC] Screen share denied:", error?.message || error);
-              webRtcState.screenStream = null;
-            }
-          }
         };
 
         const addTracksToPeer = () => {
-          const streams = [webRtcState.webcamStream, webRtcState.screenStream].filter(Boolean);
-          streams.forEach((stream) => {
-            stream.getTracks().forEach((track) => {
-              if (webRtcState.trackIds.has(track.id)) return;
-              webRtcState.trackIds.add(track.id);
-              if (track.kind === "video") {
-                track.contentHint = "motion";
-              }
-              webRtcState.pc.addTrack(track, stream);
-            });
+          const stream = webRtcState.webcamStream;
+          if (!stream) return;
+          stream.getTracks().forEach((track) => {
+            if (webRtcState.trackIds.has(track.id)) return;
+            webRtcState.trackIds.add(track.id);
+            if (track.kind === "video") {
+              track.contentHint = "motion";
+            }
+            webRtcState.pc.addTrack(track, stream);
           });
         };
 

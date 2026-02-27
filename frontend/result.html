@@ -706,7 +706,7 @@
           document.getElementById("btn-email-report").style.display = "";
 
           const totalScore = result.total_score ?? null;
-          const totalMarks = (result.responses || []).reduce(
+          const totalMarks = result.total_marks ?? (result.responses || []).reduce(
             (sum, response) => sum + (Number(response.marks) || 0),
             0,
           );

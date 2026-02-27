@@ -11,6 +11,7 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.db import Exam, ProctoringLog, Question, Response, Result, Session, User
 from app.models.grading import grade_session
+from app.utils.analytics import calculate_comparative_analytics, calculate_time_analytics, calculate_question_analytics
 from app.utils.pdf_generator import generate_student_report, generate_professor_report
 
 
@@ -116,11 +117,19 @@ async def get_session_results(
         for response, question in responses_result.all()
     ]
 
+    total_marks = None
+    if exam:
+        total_marks_result = await db.execute(
+            select(func.sum(Question.marks)).where(Question.exam_id == exam.id)
+        )
+        total_marks = total_marks_result.scalar() or 0
+
     return {
         "session_id": str(session.id),
         "exam_title": exam.title if exam else None,
         "status": session.status,
         "total_score": result.total_score if result else None,
+        "total_marks": total_marks,
         "integrity_score": result.integrity_score if result else session.integrity_score,
         "violation_summary": violation_summary,
         "responses": responses,
@@ -224,9 +233,13 @@ async def get_session_results_pdf(
     responses = [
         {
             "question_id": str(question.id),
+            "question_text": question.text,
+            "question_type": question.type,
             "answer": response.answer,
             "score": response.score,
             "marks": question.marks,
+            "time_spent_seconds": response.time_spent_seconds,
+            "keywords": question.keywords or [],
         }
         for response, question in responses_result.all()
     ]
@@ -244,13 +257,100 @@ async def get_session_results_pdf(
         for log in violations_result.scalars().all()
     ]
     
+    total_marks = None
+    if exam:
+        total_marks_result = await db.execute(
+            select(func.sum(Question.marks)).where(Question.exam_id == exam.id)
+        )
+        total_marks = total_marks_result.scalar() or 0
+
+    time_analytics = calculate_time_analytics(responses)
+
+    topic_map: dict[str, dict] = {}
+    for item in responses:
+        keywords = item.get("keywords") or []
+        topic = (keywords[0] if keywords else None) or "General"
+        entry = topic_map.setdefault(topic, {"scored": 0.0, "possible": 0.0, "attempts": 0})
+        entry["scored"] += float(item.get("score") or 0)
+        entry["possible"] += float(item.get("marks") or 0)
+        if item.get("answer"):
+            entry["attempts"] += 1
+
+    topic_analytics = [
+        {
+            "topic": topic,
+            "accuracy_pct": round((values["scored"] / values["possible"]) * 100, 1)
+            if values["possible"] > 0
+            else 0.0,
+            "scored": round(values["scored"], 2),
+            "possible": round(values["possible"], 2),
+            "attempts": values["attempts"],
+        }
+        for topic, values in topic_map.items()
+    ]
+
+    question_rows_result = await db.execute(
+        select(Response, Question)
+        .join(Question, Response.question_id == Question.id)
+        .join(Session, Response.session_id == Session.id)
+        .where(Session.exam_id == session.exam_id)
+    )
+    question_map: dict[str, list[dict]] = {}
+    for resp, q in question_rows_result.all():
+        question_map.setdefault(str(q.id), []).append(
+            {
+                "score": resp.score,
+                "marks": q.marks,
+                "time_spent_seconds": resp.time_spent_seconds,
+            }
+        )
+
+    question_analytics = []
+    for item in responses:
+        analytics = calculate_question_analytics(question_map.get(item["question_id"], []))
+        question_analytics.append({
+            **analytics,
+            "question_id": item["question_id"],
+            "question_text": item.get("question_text"),
+            "student_score": item.get("score") or 0,
+            "student_time_seconds": item.get("time_spent_seconds") or 0,
+            "max_marks": item.get("marks") or 0,
+        })
+
+    sessions_result = await db.execute(
+        select(Session, Result)
+        .outerjoin(Result, Result.session_id == Session.id)
+        .where(Session.exam_id == session.exam_id)
+    )
+    sessions_rows = sessions_result.all()
+    all_scores = [row[1].total_score for row in sessions_rows if row[1] and row[1].total_score is not None]
+
+    time_totals_result = await db.execute(
+        select(Response.session_id, func.sum(Response.time_spent_seconds))
+        .join(Session, Response.session_id == Session.id)
+        .where(Session.exam_id == session.exam_id)
+        .group_by(Response.session_id)
+    )
+    time_totals = {row[0]: int(row[1] or 0) for row in time_totals_result.all()}
+    all_times = list(time_totals.values())
+    student_time = int(time_analytics.get("total_time_seconds") or 0)
+    comparative = calculate_comparative_analytics(
+        student_score=float(result.total_score if result else 0),
+        all_scores=all_scores,
+        student_time=student_time,
+        all_times=all_times,
+    )
+
     # Prepare session data
     session_data = {
         "session_id": str(session.id),
         "status": session.status,
         "total_score": result.total_score if result else None,
+        "total_marks": total_marks,
         "integrity_score": result.integrity_score if result else session.integrity_score,
         "violation_summary": result.violation_summary if result else {},
+        "comparative": comparative,
+        "time_analytics": time_analytics,
     }
     
     # Generate PDF
@@ -259,7 +359,11 @@ async def get_session_results_pdf(
         exam_title=exam.title if exam else "Unknown Exam",
         session_data=session_data,
         responses=responses,
-        violations=violations
+        violations=violations,
+        topic_analytics=topic_analytics,
+        question_analytics=question_analytics,
+        comparative_analytics=comparative,
+        time_analytics=time_analytics,
     )
     
     # Return as streaming response
@@ -372,9 +476,13 @@ async def email_session_results(
     responses = [
         {
             "question_id": str(question.id),
+            "question_text": question.text,
+            "question_type": question.type,
             "answer": response.answer,
             "score": response.score,
             "marks": question.marks,
+            "time_spent_seconds": response.time_spent_seconds,
+            "keywords": question.keywords or [],
         }
         for response, question in responses_result.all()
     ]
@@ -392,13 +500,100 @@ async def email_session_results(
         for log in violations_result.scalars().all()
     ]
     
+    total_marks = None
+    if exam:
+        total_marks_result = await db.execute(
+            select(func.sum(Question.marks)).where(Question.exam_id == exam.id)
+        )
+        total_marks = total_marks_result.scalar() or 0
+
+    time_analytics = calculate_time_analytics(responses)
+
+    topic_map: dict[str, dict] = {}
+    for item in responses:
+        keywords = item.get("keywords") or []
+        topic = (keywords[0] if keywords else None) or "General"
+        entry = topic_map.setdefault(topic, {"scored": 0.0, "possible": 0.0, "attempts": 0})
+        entry["scored"] += float(item.get("score") or 0)
+        entry["possible"] += float(item.get("marks") or 0)
+        if item.get("answer"):
+            entry["attempts"] += 1
+
+    topic_analytics = [
+        {
+            "topic": topic,
+            "accuracy_pct": round((values["scored"] / values["possible"]) * 100, 1)
+            if values["possible"] > 0
+            else 0.0,
+            "scored": round(values["scored"], 2),
+            "possible": round(values["possible"], 2),
+            "attempts": values["attempts"],
+        }
+        for topic, values in topic_map.items()
+    ]
+
+    question_rows_result = await db.execute(
+        select(Response, Question)
+        .join(Question, Response.question_id == Question.id)
+        .join(Session, Response.session_id == Session.id)
+        .where(Session.exam_id == session.exam_id)
+    )
+    question_map: dict[str, list[dict]] = {}
+    for resp, q in question_rows_result.all():
+        question_map.setdefault(str(q.id), []).append(
+            {
+                "score": resp.score,
+                "marks": q.marks,
+                "time_spent_seconds": resp.time_spent_seconds,
+            }
+        )
+
+    question_analytics = []
+    for item in responses:
+        analytics = calculate_question_analytics(question_map.get(item["question_id"], []))
+        question_analytics.append({
+            **analytics,
+            "question_id": item["question_id"],
+            "question_text": item.get("question_text"),
+            "student_score": item.get("score") or 0,
+            "student_time_seconds": item.get("time_spent_seconds") or 0,
+            "max_marks": item.get("marks") or 0,
+        })
+
+    sessions_result = await db.execute(
+        select(Session, Result)
+        .outerjoin(Result, Result.session_id == Session.id)
+        .where(Session.exam_id == session.exam_id)
+    )
+    sessions_rows = sessions_result.all()
+    all_scores = [row[1].total_score for row in sessions_rows if row[1] and row[1].total_score is not None]
+
+    time_totals_result = await db.execute(
+        select(Response.session_id, func.sum(Response.time_spent_seconds))
+        .join(Session, Response.session_id == Session.id)
+        .where(Session.exam_id == session.exam_id)
+        .group_by(Response.session_id)
+    )
+    time_totals = {row[0]: int(row[1] or 0) for row in time_totals_result.all()}
+    all_times = list(time_totals.values())
+    student_time = int(time_analytics.get("total_time_seconds") or 0)
+    comparative = calculate_comparative_analytics(
+        student_score=float(result.total_score if result else 0),
+        all_scores=all_scores,
+        student_time=student_time,
+        all_times=all_times,
+    )
+
     # Prepare session data
     session_data = {
         "session_id": str(session.id),
         "status": session.status,
         "total_score": result.total_score if result else 0,
+        "total_marks": total_marks,
         "integrity_score": result.integrity_score if result else session.integrity_score,
         "violation_summary": result.violation_summary if result else {},
+        "comparative": comparative,
+        "time_analytics": time_analytics,
     }
     
     # Generate PDF
@@ -407,11 +602,15 @@ async def email_session_results(
         exam_title=exam.title if exam else "Unknown Exam",
         session_data=session_data,
         responses=responses,
-        violations=violations
+        violations=violations,
+        topic_analytics=topic_analytics,
+        question_analytics=question_analytics,
+        comparative_analytics=comparative,
+        time_analytics=time_analytics,
     )
     
     # Generate email body
-    max_score = sum(r['marks'] for r in responses) if responses else 100
+    max_score = total_marks if total_marks is not None else (sum(r['marks'] for r in responses) if responses else 0)
     email_body = generate_student_email_body(
         student_name=student.full_name if student else "Student",
         exam_title=exam.title if exam else "Exam",

@@ -64,18 +64,6 @@
       .card-frame { width: 100%; height: 170px; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
       .card-frame video { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
       .card-frame .no-feed { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; }
-      .card-frame .video-screen {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        width: 120px;
-        height: 80px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #000;
-        object-fit: cover;
-        z-index: 2;
-      }
 
       .card-badge { position: absolute; top: 8px; left: 8px; border-radius: 999px; padding: 3px 8px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600; z-index: 2; }
       .badge-active { background: rgba(0,216,150,0.25); color: var(--green); border: 1px solid rgba(0,216,150,0.4); }
@@ -260,14 +248,6 @@
           videoMain.style.display = "none";
           frame.appendChild(videoMain);
 
-          const videoScreen = document.createElement("video");
-          videoScreen.className = "video-screen";
-          videoScreen.autoplay = true;
-          videoScreen.muted = true;
-          videoScreen.playsInline = true;
-          videoScreen.style.display = "none";
-          frame.appendChild(videoScreen);
-
           const noFeed = document.createElement("span");
           noFeed.className = "no-feed";
           noFeed.textContent = s.status === "active" ? "Waiting for feed..." : "No Feed";
@@ -444,7 +424,7 @@
 
         // ---- WebRTC Viewer ----
         const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
-        const rtcPeers = {}; // session_id -> { pc, ws, mainVideo, screenVideo, trackCount }
+        const rtcPeers = {}; // session_id -> { pc, ws, mainVideo }
 
         const ensurePeer = async (s) => {
           const sid = s.session_id;
@@ -458,28 +438,18 @@
           const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
           const mainVideo = card.querySelector(".video-main");
-          const screenVideo = card.querySelector(".video-screen");
-
-          rtcPeers[sid] = { ws, pc, mainVideo, screenVideo, trackCount: 0 };
+          rtcPeers[sid] = { ws, pc, mainVideo };
 
           pc.ontrack = (event) => {
             const peer = rtcPeers[sid];
             if (!peer) return;
             const track = event.track;
             const stream = event.streams[0];
-            const label = (track.label || "").toLowerCase();
-            const useScreen = label.includes("screen") || peer.trackCount > 0;
-
-            if (!useScreen && peer.mainVideo) {
+            if (track.kind === "video" && peer.mainVideo) {
               peer.mainVideo.srcObject = stream;
               peer.mainVideo.style.display = "block";
               peer.mainVideo.play().catch(() => {});
-            } else if (peer.screenVideo) {
-              peer.screenVideo.srcObject = stream;
-              peer.screenVideo.style.display = "block";
-              peer.screenVideo.play().catch(() => {});
             }
-            peer.trackCount += 1;
 
             const noFeed = card.querySelector(".no-feed");
             if (noFeed) noFeed.style.display = "none";

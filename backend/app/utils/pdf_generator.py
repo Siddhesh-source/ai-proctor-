@@ -59,6 +59,24 @@ def create_bar_chart(labels: list[str], values: list[float], title: str, ylabel:
     return buffer
 
 
+def create_line_chart(labels: list[str], values: list[float], title: str, ylabel: str) -> BytesIO:
+    fig, ax = plt.subplots(figsize=(8, 4))
+    if labels and values:
+        ax.plot(labels, values, marker='o', linewidth=2, color='steelblue')
+        ax.set_title(title)
+        ax.set_ylabel(ylabel)
+        ax.set_xlabel('Questions')
+        plt.xticks(rotation=45, ha='right')
+    else:
+        ax.text(0.5, 0.5, 'No Data', ha='center', va='center', fontsize=16)
+        ax.set_title(title)
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png', bbox_inches='tight', dpi=100)
+    plt.close()
+    buffer.seek(0)
+    return buffer
+
+
 def create_timeline_chart(violations: list[dict], title: str) -> BytesIO:
     """Create a timeline chart for violations"""
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -103,7 +121,11 @@ def generate_student_report(
     exam_title: str,
     session_data: dict[str, Any],
     responses: list[dict],
-    violations: list[dict]
+    violations: list[dict],
+    topic_analytics: list[dict] | None = None,
+    question_analytics: list[dict] | None = None,
+    comparative_analytics: dict[str, Any] | None = None,
+    time_analytics: dict[str, Any] | None = None,
 ) -> BytesIO:
     """
     Generate comprehensive PDF report for a student
@@ -160,9 +182,10 @@ def generate_student_report(
     
     elements.append(Spacer(1, 0.5*inch))
     
-    # Score Summary Box
     total_score = session_data.get('total_score', 0)
-    max_score = sum(r['marks'] for r in responses) if responses else 100
+    max_score = session_data.get('total_marks')
+    if max_score is None:
+        max_score = sum(r['marks'] for r in responses) if responses else 0
     percentage = (total_score / max_score * 100) if max_score > 0 else 0
     integrity_score = session_data.get('integrity_score', 100)
     
@@ -187,18 +210,70 @@ def generate_student_report(
     
     elements.append(PageBreak())
     
-    # Executive Summary
-    elements.append(Paragraph("Executive Summary", heading_style))
+    comparative = comparative_analytics or session_data.get("comparative") or {}
+    time_metrics = time_analytics or session_data.get("time_analytics") or {}
+
+    elements.append(Paragraph("Performance Summary", heading_style))
     elements.append(Spacer(1, 0.2*inch))
-    
-    summary_text = f"""
-    This report provides a comprehensive analysis of your performance in the {exam_title} examination.
-    You scored {total_score:.1f} out of {max_score:.1f} marks ({percentage:.1f}%).
-    Your integrity score is {integrity_score:.1f}%, indicating {'excellent' if integrity_score >= 90 else 'good' if integrity_score >= 75 else 'concerning'} exam conduct.
-    """
-    elements.append(Paragraph(summary_text, styles['BodyText']))
+
+    summary_rows = [
+        ["Score", f"{total_score:.1f} / {max_score:.1f}"],
+        ["Percentage", f"{percentage:.1f}%"],
+        ["Class Average", f"{comparative.get('class_average', '—')}"],
+        ["Percentile", f"{comparative.get('percentile', '—')}"],
+        ["Rank", f"{comparative.get('rank', '—')} / {comparative.get('total_students', '—')}"],
+        ["Integrity", f"{integrity_score:.1f}%"],
+        ["Total Time", f"{time_metrics.get('total_time_minutes', 0)} min"],
+        ["Avg Time / Question", f"{time_metrics.get('average_time_per_question', 0)} sec"],
+    ]
+    summary_table = Table(summary_rows, colWidths=[2.5*inch, 3.5*inch])
+    summary_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f5f7fa')),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#d0d7de')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e0e0e0')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(summary_table)
     elements.append(Spacer(1, 0.3*inch))
     
+    # Topic-wise Analysis
+    if topic_analytics:
+        elements.append(Paragraph("Topic-wise Accuracy", heading_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+        topic_rows = [["Topic", "Accuracy", "Score", "Max", "Attempts"]]
+        for item in topic_analytics:
+            topic_rows.append([
+                item.get("topic", "General"),
+                f"{item.get('accuracy_pct', 0)}%",
+                f"{item.get('scored', 0)}",
+                f"{item.get('possible', 0)}",
+                str(item.get("attempts", 0)),
+            ])
+
+        topic_table = Table(topic_rows, colWidths=[2*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+        topic_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+        elements.append(topic_table)
+
+        labels = [t.get("topic", "General") for t in topic_analytics]
+        values = [t.get("accuracy_pct", 0) for t in topic_analytics]
+        chart_buffer = create_bar_chart(labels, values, "Topic Accuracy", "Accuracy (%)")
+        elements.append(Spacer(1, 0.2*inch))
+        elements.append(RLImage(chart_buffer, width=6*inch, height=3*inch))
+        elements.append(PageBreak())
+
     # Question-wise Analysis
     elements.append(Paragraph("Question-wise Performance", heading_style))
     elements.append(Spacer(1, 0.2*inch))
@@ -239,25 +314,73 @@ def generate_student_report(
             ('ALIGN', (1, 1), (1, -1), 'LEFT'),
         ]))
         elements.append(question_table)
+
+    if question_analytics:
+        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Paragraph("Difficulty & Timing Insights", heading_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+        qa_rows = [["Q#", "Difficulty", "Class Avg", "Your Score", "Avg Time", "Your Time"]]
+        for idx, item in enumerate(question_analytics, 1):
+            qa_rows.append([
+                str(idx),
+                item.get("difficulty_category", "—"),
+                str(item.get("average_score", "—")),
+                str(item.get("student_score", "—")),
+                str(item.get("average_time_seconds", "—")),
+                str(item.get("student_time_seconds", "—")),
+            ])
+        qa_table = Table(qa_rows, colWidths=[0.5*inch, 1.2*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+        qa_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ]))
+        elements.append(qa_table)
     
     elements.append(PageBreak())
     
     # Performance Charts
     elements.append(Paragraph("Performance Visualization", heading_style))
     elements.append(Spacer(1, 0.2*inch))
-    
-    # Score distribution chart
+
     if responses:
         labels = [f"Q{i+1}" for i in range(len(responses))]
         scores = [r.get('score', 0) or 0 for r in responses]
-        
-        chart_buffer = create_bar_chart(labels, scores, 
-                                        "Score per Question", "Score")
-        chart_img = RLImage(chart_buffer, width=6*inch, height=3*inch)
-        elements.append(chart_img)
+        score_chart = create_bar_chart(labels, scores, "Score per Question", "Score")
+        elements.append(RLImage(score_chart, width=6*inch, height=3*inch))
+
+    if responses:
+        times = [r.get('time_spent_seconds', 0) or 0 for r in responses]
+        time_chart = create_line_chart(labels, times, "Time per Question", "Seconds")
+        elements.append(Spacer(1, 0.2*inch))
+        elements.append(RLImage(time_chart, width=6*inch, height=3*inch))
     
     elements.append(Spacer(1, 0.3*inch))
     
+    if time_metrics:
+        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Paragraph("Pacing Analysis", heading_style))
+        elements.append(Spacer(1, 0.2*inch))
+        pacing_rows = [
+            ["Total Time (min)", time_metrics.get("total_time_minutes", 0)],
+            ["Average per Question (sec)", time_metrics.get("average_time_per_question", 0)],
+            ["Fastest Question (sec)", time_metrics.get("fastest_question_time", 0)],
+            ["Slowest Question (sec)", time_metrics.get("slowest_question_time", 0)],
+        ]
+        pacing_table = Table(pacing_rows, colWidths=[3*inch, 3*inch])
+        pacing_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f5f7fa')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#d0d7de')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e0e0e0')),
+        ]))
+        elements.append(pacing_table)
+
     # Proctoring Report
     elements.append(PageBreak())
     elements.append(Paragraph("Proctoring & Integrity Report", heading_style))
