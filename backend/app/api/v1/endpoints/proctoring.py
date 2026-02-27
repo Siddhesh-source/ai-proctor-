@@ -90,17 +90,20 @@ async def _log_violation(
 
 @router.post("/frame")
 async def process_frame(payload: dict, db: AsyncSession = Depends(get_db)) -> dict:
-    session = await _get_session(payload.get("session_id", ""), db)
+    raw_sid = payload.get("session_id", "")
+    debug_mode = (raw_sid == "debug")
+    if not debug_mode:
+        session = await _get_session(raw_sid, db)
+
     frame_base64 = payload.get("frame_base64")
     if not frame_base64:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="frame_base64 required")
     if "," in frame_base64:
         frame_base64 = frame_base64.split(",", 1)[1]
-    LAST_FRAMES[str(session.id)] = f"data:image/jpeg;base64,{frame_base64}"
-    logger.debug(
-        "Frame received",
-        extra={"session_id": str(session.id), "size": len(frame_base64)},
-    )
+
+    if not debug_mode:
+        LAST_FRAMES[str(session.id)] = f"data:image/jpeg;base64,{frame_base64}"
+
     try:
         image_bytes = base64.b64decode(frame_base64)
     except Exception as exc:
@@ -109,40 +112,39 @@ async def process_frame(payload: dict, db: AsyncSession = Depends(get_db)) -> di
     frame = np.array(image)
     results = yolo(frame)
     labels = []
+    detections = []  # [{label, conf, bbox}] for debug
     person_count = 0
     for result in results:
         names = result.names
-        classes = result.boxes.cls.tolist() if result.boxes is not None else []
-        for class_id in classes:
+        boxes = result.boxes
+        if boxes is None:
+            continue
+        classes = boxes.cls.tolist()
+        confs   = boxes.conf.tolist()
+        xyxys   = boxes.xyxy.tolist()
+        for class_id, conf, xyxy in zip(classes, confs, xyxys):
             name = names.get(int(class_id), "")
             labels.append(name)
+            detections.append({"label": name, "conf": round(conf, 3), "bbox": [round(v) for v in xyxy]})
             if name == "person":
                 person_count += 1
     violations = []
-    integrity_score = session.integrity_score or 100.0
-    if "cell phone" in labels or "book" in labels:
-        integrity_score = await _log_violation(
-            db,
-            session,
-            "phone_detected",
-            0.9,
-            {"labels": labels},
-        )
-        violations.append("phone_detected")
-    if person_count > 1:
-        integrity_score = await _log_violation(
-            db,
-            session,
-            "multiple_faces",
-            0.85,
-            {"person_count": person_count},
-        )
-        violations.append("multiple_faces")
-    logger.debug(
-        "Frame processed",
-        extra={"session_id": str(session.id), "violations": violations},
-    )
-    return {"violations": violations, "integrity_score": integrity_score}
+    integrity_score = 100.0 if debug_mode else (session.integrity_score or 100.0)
+
+    if not debug_mode:
+        if "cell phone" in labels or "book" in labels:
+            integrity_score = await _log_violation(db, session, "phone_detected", 0.9, {"labels": labels})
+            violations.append("phone_detected")
+        if person_count > 1:
+            integrity_score = await _log_violation(db, session, "multiple_faces", 0.85, {"person_count": person_count})
+            violations.append("multiple_faces")
+    else:
+        if "cell phone" in labels or "book" in labels:
+            violations.append("phone_detected")
+        if person_count > 1:
+            violations.append("multiple_faces")
+
+    return {"violations": violations, "labels": labels, "detections": detections, "person_count": person_count, "integrity_score": integrity_score}
 
 
 @router.get("/session/{session_id}/frame")
