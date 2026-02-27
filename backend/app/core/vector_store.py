@@ -1,15 +1,12 @@
-import logging
 import os
 from functools import lru_cache
 
 import chromadb
 
 
-logger = logging.getLogger(__name__)
-
-
 def _get_chroma_path() -> str:
-    return os.getenv("CHROMA_DB_PATH", os.path.join(os.getcwd(), "chroma_db"))
+    default_path = os.path.join(os.path.expanduser("~"), ".morpheus", "chroma_db")
+    return os.getenv("CHROMA_DB_PATH", default_path)
 
 
 @lru_cache
@@ -27,26 +24,44 @@ def get_face_collection():
 
 
 def get_face_embedding(user_id: str) -> list[float] | None:
-    collection = get_face_collection()
-    result = collection.get(ids=[user_id], include=["embeddings"])
-    ids = result.get("ids") or []
-    if len(ids) == 0:
-        logger.info("Face embedding not found", extra={"user_id": user_id})
-        return None
-    embeddings = result.get("embeddings")
-    if embeddings is None or len(embeddings) == 0:
-        logger.info("Face embedding empty", extra={"user_id": user_id})
-        return None
-    logger.info("Face embedding loaded", extra={"user_id": user_id})
-    return embeddings[0]
+    profile = get_face_profile(user_id)
+    return profile.get("center")
 
 
 def upsert_face_embedding(user_id: str, embedding: list[float]) -> None:
+    upsert_face_profile(user_id, {"center": embedding})
+
+
+def get_face_profile(user_id: str) -> dict[str, list[float]]:
     collection = get_face_collection()
-    existing = collection.get(ids=[user_id], include=[])
-    if existing.get("ids"):
-        logger.info("Face embedding updated", extra={"user_id": user_id, "length": len(embedding)})
-        collection.update(ids=[user_id], embeddings=[embedding])
-        return
-    logger.info("Face embedding created", extra={"user_id": user_id, "length": len(embedding)})
-    collection.add(ids=[user_id], embeddings=[embedding], metadatas=[{"user_id": user_id}])
+    result = collection.get(where={"user_id": user_id}, include=["embeddings", "metadatas"])
+    ids = result.get("ids")
+    embeddings = result.get("embeddings")
+    metadatas = result.get("metadatas")
+    ids = list(ids) if ids is not None else []
+    embeddings = list(embeddings) if embeddings is not None else []
+    metadatas = list(metadatas) if metadatas is not None else []
+
+    profile: dict[str, list[float]] = {}
+    for idx, _ in enumerate(ids):
+        metadata = metadatas[idx] if idx < len(metadatas) else None
+        pose = metadata.get("pose") if isinstance(metadata, dict) else None
+        if not pose:
+            pose = "center"
+        emb = embeddings[idx] if idx < len(embeddings) else None
+        if emb is None:
+            continue
+        profile[pose] = list(emb)
+    return profile
+
+
+def upsert_face_profile(user_id: str, samples: dict[str, list[float]]) -> None:
+    collection = get_face_collection()
+    for pose, embedding in samples.items():
+        vector_id = f"{user_id}:{pose}"
+        metadata = {"user_id": user_id, "pose": pose}
+        existing = collection.get(ids=[vector_id], include=[])
+        if existing.get("ids"):
+            collection.update(ids=[vector_id], embeddings=[embedding], metadatas=[metadata])
+            continue
+        collection.add(ids=[vector_id], embeddings=[embedding], metadatas=[metadata])
