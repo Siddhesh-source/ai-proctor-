@@ -269,6 +269,58 @@
         color: var(--muted);
       }
 
+      .breakdown-bar-wrap {
+        display: grid;
+        gap: 8px;
+      }
+
+      .breakdown-bar-row {
+        display: grid;
+        grid-template-columns: 100px 1fr 42px;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .bar-track {
+        height: 6px;
+        border-radius: 99px;
+        background: rgba(255,255,255,0.08);
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 99px;
+        background: var(--accent);
+        transition: width 600ms cubic-bezier(0.2,0.8,0.2,1);
+      }
+
+      .bar-fill.low { background: #ff7a7a; }
+      .bar-fill.mid { background: #ffd166; }
+      .bar-fill.high { background: #44d17f; }
+
+      .badge.review {
+        background: rgba(255, 120, 120, 0.18);
+        border-color: rgba(255, 120, 120, 0.5);
+        color: #ff9a9a;
+      }
+
+      .badge.ai-graded {
+        background: rgba(90, 166, 255, 0.15);
+        border-color: rgba(90, 166, 255, 0.4);
+        color: #8ec8ff;
+      }
+
+      .badge.manual {
+        background: rgba(215, 255, 69, 0.12);
+        border-color: rgba(215, 255, 69, 0.4);
+        color: var(--accent);
+      }
+
       .violation-list {
         list-style: none;
         display: grid;
@@ -475,6 +527,53 @@
             .join("");
         };
 
+        const barFillClass = (pct) => {
+          if (pct >= 70) return "high";
+          if (pct >= 40) return "mid";
+          return "low";
+        };
+
+        const renderBreakdown = (response) => {
+          const bd = response.grading_breakdown;
+          if (!bd || response.question_type !== "subjective") return "";
+
+          const rows = [
+            { label: "Semantic", value: bd.semantic ?? 0 },
+            { label: "Keywords", value: bd.keyword ?? 0 },
+            { label: "Structure", value: bd.structure ?? 0 },
+          ];
+
+          const bars = rows.map(({ label, value }) => {
+            const pct = Math.round(value * 100);
+            const cls = barFillClass(pct);
+            return `
+              <div class="breakdown-bar-row">
+                <span>${escapeHtml(label)}</span>
+                <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+                <span>${pct}%</span>
+              </div>`;
+          }).join("");
+
+          const reviewBadge = bd.needs_review
+            ? `<span class="badge review">Needs Review</span>`
+            : "";
+          const gradeBadge = response.manually_graded
+            ? `<span class="badge manual">Manually Graded</span>`
+            : `<span class="badge ai-graded">AI Graded</span>`;
+          const note = response.override_note
+            ? `<div class="muted" style="font-size:12px;margin-top:4px;">Note: ${escapeHtml(response.override_note)}</div>`
+            : "";
+
+          return `
+            <div>
+              <div class="panel-title" style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                AI Grading Breakdown ${gradeBadge} ${reviewBadge}
+              </div>
+              <div class="breakdown-bar-wrap">${bars}</div>
+              ${note}
+            </div>`;
+        };
+
         const renderQuestionResponses = (responses) => {
           if (!els.questionReview) return;
           if (!responses || !responses.length) {
@@ -503,6 +602,7 @@
                     <div class="panel-title" style="margin-bottom: 6px;">Correct Answer</div>
                     <div class="answer-block" style="border-color:rgba(81,255,167,0.3);">${escapeHtml(response.correct_answer ?? "—")}</div>
                   </div>
+                  ${renderBreakdown(response)}
                 </div>
               `;
             })
