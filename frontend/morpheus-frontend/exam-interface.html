@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <style>
       :root {
         color-scheme: dark;
@@ -600,6 +602,33 @@
     <script src="api.js"></script>
     <script>
       (() => {
+        // ── Native API cache (must be first — captures originals before any
+        //    extension can override them) ─────────────────────────────────
+        const _dateNow      = Date.now.bind(Date);
+        const _perfNow      = performance.now.bind(performance);
+        const _setInterval  = window.setInterval.bind(window);
+        const _setTimeout   = window.setTimeout.bind(window);
+        const _clearTimeout = window.clearTimeout.bind(window);
+        const _hasFocus     = document.hasFocus.bind(document);
+        const _addEvent     = EventTarget.prototype.addEventListener;
+
+        // Capture property descriptor getters so defineProperty overrides are bypassed
+        const _hiddenDesc     = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden');
+        const _visibilityDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+        const _screenW        = Object.getOwnPropertyDescriptor(Screen.prototype, 'width')
+                                  || Object.getOwnPropertyDescriptor(window.screen, 'width');
+        const _screenH        = Object.getOwnPropertyDescriptor(Screen.prototype, 'height')
+                                  || Object.getOwnPropertyDescriptor(window.screen, 'height');
+        const _screenExt      = Object.getOwnPropertyDescriptor(Screen.prototype, 'isExtended')
+                                  || Object.getOwnPropertyDescriptor(window.screen, 'isExtended');
+
+        const isHidden     = () => _hiddenDesc     ? _hiddenDesc.get.call(document)     : document.hidden;
+        const visState     = () => _visibilityDesc ? _visibilityDesc.get.call(document) : document.visibilityState;
+        const screenWidth  = () => _screenW        ? _screenW.get.call(window.screen)   : window.screen.width;
+        const screenHeight = () => _screenH        ? _screenH.get.call(window.screen)   : window.screen.height;
+        const isExtended   = () => _screenExt      ? _screenExt.get.call(window.screen) : window.screen.isExtended;
+        // ─────────────────────────────────────────────────────────────────
+
         if (!window.Morpheus.requireAuth("student")) return;
 
         const exam_id = new URLSearchParams(window.location.search).get("exam_id");
@@ -732,9 +761,9 @@
         };
 
         const scheduleSave = (questionId, answer) => {
-          if (saveTimer) window.clearTimeout(saveTimer);
+          if (saveTimer) _clearTimeout(saveTimer);
           setSavingStatus("Saving...");
-          saveTimer = window.setTimeout(async () => {
+          saveTimer = _setTimeout(async () => {
             try {
               await window.Morpheus.submitAnswer(exam_id, session_id, questionId, answer);
               setSavingStatus("Saved");
@@ -814,12 +843,110 @@
         };
 
         document.addEventListener("contextmenu", (e) => e.preventDefault());
-        document.addEventListener("copy", (e) => e.preventDefault());
-        document.addEventListener("cut", (e) => e.preventDefault());
-        document.addEventListener("paste", (e) => e.preventDefault());
-        document.addEventListener("visibilitychange", () => {
-          if (document.hidden) {
-            window.Morpheus.sendRaf(session_id, 600).catch(() => {});
+
+        let lastCopyPasteViolation = 0;
+        const handleCopyPaste = (e) => {
+          e.preventDefault();
+          const now = _dateNow();
+          if (now - lastCopyPasteViolation > 10000) {
+            lastCopyPasteViolation = now;
+            window.Morpheus.sendViolation(session_id, "copy_paste", 0.9, { event: e.type }).catch(() => {});
+            showViolationToast("copy_paste");
+          }
+        };
+        document.addEventListener("copy", handleCopyPaste);
+        document.addEventListener("cut", handleCopyPaste);
+        document.addEventListener("paste", handleCopyPaste);
+        // ── Foolproof tab-switch detection (4 independent signals) ──────
+        // Extensions like "Always Active" can fake visibilityState and keep
+        // RAF running — we defeat them by combining 4 signals that cannot
+        // all be spoofed simultaneously.
+
+        let lastTabViolation = 0;
+        const TAB_COOLDOWN_MS = 8000;
+
+        const fireTabSwitch = (confidence, source) => {
+          const now = _dateNow();
+          if (now - lastTabViolation < TAB_COOLDOWN_MS) return;
+          lastTabViolation = now;
+          window.Morpheus.sendViolation(session_id, "tab_switch", confidence, { source }).catch(() => {});
+          showViolationToast("tab_switch");
+        };
+
+        // Signal 1: visibilitychange (kept — still fires for most cases)
+        _addEvent.call(document, "visibilitychange", () => {
+          if (isHidden()) {
+            fireTabSwitch(0.95, "visibilitychange");
+          }
+        });
+
+        // Signal 2: window.blur / window.focus
+        // Lower-level OS event — extensions cannot intercept it.
+        // 2-second grace period avoids false positives from clicking browser chrome.
+        let blurTimer = null;
+        _addEvent.call(window, "blur", () => {
+          blurTimer = _setTimeout(() => {
+            if (!_hasFocus()) {
+              fireTabSwitch(0.90, "window_blur");
+            }
+          }, 2000);
+        });
+        _addEvent.call(window, "focus", () => {
+          if (blurTimer) { _clearTimeout(blurTimer); blurTimer = null; }
+        });
+
+        // Signal 3: document.hasFocus() polling every 500ms
+        // Faking visibilityState does NOT affect hasFocus().
+        // Requires 2 consecutive false readings (1 second) to avoid flicker.
+        let focusMissCount = 0;
+        _setInterval(() => {
+          if (!_hasFocus()) {
+            focusMissCount++;
+            if (focusMissCount >= 2) {
+              fireTabSwitch(0.80, "hasfocus_poll");
+              focusMissCount = 0;
+            }
+          } else {
+            focusMissCount = 0;
+          }
+        }, 500);
+
+        // Signal 4: performance.now() drift inside RAF
+        // RAF is throttled to ~1fps in background tabs even with extensions.
+        // We track a rolling average of the last 5 frame deltas.
+        // If avg > 200ms while tab claims to be visible → contradiction → flag.
+        const rafDeltas = [];
+        let rafLast = _perfNow();
+        const rafLoop = (now) => {
+          const delta = now - rafLast;
+          rafLast = now;
+          if (delta > 0 && delta < 10000) {
+            rafDeltas.push(delta);
+            if (rafDeltas.length > 5) rafDeltas.shift();
+          }
+          if (rafDeltas.length === 5) {
+            const avg = rafDeltas.reduce((a, b) => a + b, 0) / rafDeltas.length;
+            if (avg > 200) {
+              fireTabSwitch(0.75, "raf_drift");
+              rafDeltas.length = 0;
+            }
+          }
+          window.requestAnimationFrame(rafLoop);
+        };
+        window.requestAnimationFrame(rafLoop);
+        // ────────────────────────────────────────────────────────────────
+
+        const examStartWidth = screenWidth();
+        const examStartHeight = screenHeight();
+        _addEvent.call(window, "resize", () => {
+          if (screenWidth() < examStartWidth || screenHeight() < examStartHeight) {
+            window.Morpheus.sendViolation(session_id, "window_resize", 0.9, {
+              start_width: examStartWidth,
+              start_height: examStartHeight,
+              current_width: screenWidth(),
+              current_height: screenHeight(),
+            }).catch(() => {});
+            showViolationToast("window_resize");
           }
         });
 
@@ -829,8 +956,13 @@
               phone_detected: "Phone detected",
               gaze_away: "Please look at the screen",
               raf_tab_switch: "Tab switch detected",
+              window_resize: "Window resize detected — keep exam fullscreen",
               speech_detected: "Please maintain silence",
               multiple_faces: "Multiple persons detected",
+              no_mouse: "Mouse left the window — stay focused on the exam",
+              copy_paste: "Copy/paste is not allowed during the exam",
+              multiple_monitors: "Multiple monitors detected",
+              tab_switch: "Tab switch detected",
             }[violation] || "Violation detected";
           let toast = document.getElementById("violation-toast");
           if (!toast) {
@@ -850,7 +982,7 @@
           }
           toast.textContent = message;
           toast.style.display = "block";
-          window.setTimeout(() => {
+          _setTimeout(() => {
             toast.style.display = "none";
           }, 2500);
         };
@@ -882,7 +1014,7 @@
           canvas.height = 240;
           const ctx = canvas.getContext("2d");
 
-          window.setInterval(() => {
+          _setInterval(() => {
             try {
               if (!videoEl) return;
               ctx.drawImage(videoEl, 0, 0, 320, 240);
@@ -901,7 +1033,7 @@
               ctx2.createMediaStreamSource(stream).connect(analyser);
               analyser.fftSize = 256;
               const data = new Uint8Array(analyser.frequencyBinCount);
-              window.setInterval(() => {
+              _setInterval(() => {
                 analyser.getByteFrequencyData(data);
                 const voiceBand = Array.from(data.slice(4, 20));
                 const voice_energy =
@@ -910,6 +1042,129 @@
               }, 5000);
             })
             .catch(() => {});
+
+          // --- Gaze tracking via FaceMesh iris landmarks ---
+          if (window.FaceMesh) {
+            const faceMesh = new window.FaceMesh({
+              locateFile: (file) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+            });
+            faceMesh.setOptions({
+              maxNumFaces: 1,
+              refineLandmarks: true,
+              minDetectionConfidence: 0.5,
+              minTrackingConfidence: 0.5,
+            });
+
+            let gazeAwayFrames = 0;
+            let lastGazeViolation = 0;
+
+            faceMesh.onResults((results) => {
+              if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
+                gazeAwayFrames = 0;
+                return;
+              }
+              const lm = results.multiFaceLandmarks[0];
+
+              // Left eye corners: 33 (inner), 133 (outer); right eye: 362 (inner), 263 (outer)
+              // Left iris center: 468; right iris center: 473
+              const leftInner = lm[33], leftOuter = lm[133];
+              const rightInner = lm[362], rightOuter = lm[263];
+              const leftIris = lm[468], rightIris = lm[473];
+
+              const eyeWidth = Math.abs(leftOuter.x - leftInner.x) + Math.abs(rightOuter.x - rightInner.x);
+              if (eyeWidth < 0.01) { gazeAwayFrames = 0; return; }
+
+              const leftRatioX = (leftIris.x - leftInner.x) / (leftOuter.x - leftInner.x);
+              const rightRatioX = (rightIris.x - rightInner.x) / (rightOuter.x - rightInner.x);
+              const avgRatioX = (leftRatioX + rightRatioX) / 2;
+
+              // Left/right eye top/bottom: use landmarks 159 (top left), 145 (bottom left)
+              const leftEyeHeight = Math.abs(lm[159].y - lm[145].y);
+              const rightEyeHeight = Math.abs(lm[386].y - lm[374].y);
+              const leftRatioY = leftEyeHeight > 0.005
+                ? (leftIris.y - lm[159].y) / leftEyeHeight : 0.5;
+              const rightRatioY = rightEyeHeight > 0.005
+                ? (rightIris.y - lm[386].y) / rightEyeHeight : 0.5;
+              const avgRatioY = (leftRatioY + rightRatioY) / 2;
+
+              let direction = null;
+              if (avgRatioX < 0.35) direction = "left";
+              else if (avgRatioX > 0.65) direction = "right";
+              else if (avgRatioY < 0.35) direction = "up";
+              else if (avgRatioY > 0.65) direction = "down";
+
+              if (direction) {
+                gazeAwayFrames++;
+                if (gazeAwayFrames >= 3) {
+                  const now = _dateNow();
+                  if (now - lastGazeViolation > 10000) {
+                    lastGazeViolation = now;
+                    gazeAwayFrames = 0;
+                    window.Morpheus.sendViolation(id, "gaze_away", 0.8, { direction }).catch(() => {});
+                    showViolationToast("gaze_away");
+                  }
+                }
+              } else {
+                gazeAwayFrames = 0;
+              }
+            });
+
+            const gazeCanvas = document.createElement("canvas");
+            gazeCanvas.width = 320;
+            gazeCanvas.height = 240;
+            const gazeCtx = gazeCanvas.getContext("2d");
+
+            _setInterval(async () => {
+              try {
+                if (!videoEl || videoEl.readyState < 2) return;
+                gazeCtx.drawImage(videoEl, 0, 0, 320, 240);
+                await faceMesh.send({ image: gazeCanvas });
+              } catch (e) {
+                // ignore gaze errors
+              }
+            }, 500);
+          }
+
+          // --- Mouse leave detection ---
+          let mouseLeaveTimer = null;
+          let mouseLeaveAt = 0;
+          let lastMouseViolation = 0;
+
+          _addEvent.call(document, "mouseleave", () => {
+            mouseLeaveAt = _dateNow();
+            mouseLeaveTimer = _setTimeout(() => {
+              const now = _dateNow();
+              if (now - lastMouseViolation > 15000) {
+                lastMouseViolation = now;
+                const away_ms = now - mouseLeaveAt;
+                window.Morpheus.sendViolation(id, "no_mouse", 0.75, { away_ms }).catch(() => {});
+                showViolationToast("no_mouse");
+              }
+            }, 3000);
+          });
+
+          _addEvent.call(document, "mouseenter", () => {
+            if (mouseLeaveTimer) {
+              _clearTimeout(mouseLeaveTimer);
+              mouseLeaveTimer = null;
+            }
+          });
+
+          // --- Multiple monitor detection ---
+          const checkMultipleMonitors = () => {
+            if (isExtended() === true) {
+              window.Morpheus.sendViolation(id, "multiple_monitors", 0.9, {
+                screen_width: screenWidth(),
+                screen_height: screenHeight(),
+              }).catch(() => {});
+              showViolationToast("multiple_monitors");
+            }
+          };
+          checkMultipleMonitors();
+          if (window.screen.addEventListener) {
+            _addEvent.call(window.screen, "change", checkMultipleMonitors);
+          }
 
           window.Morpheus.connectProctoringWS(id, (data) => {
             const integrityEl =
@@ -932,7 +1187,7 @@
           const durationMinutes = 90;
           remainingSeconds = durationMinutes * 60;
           updateTimer();
-          timerHandle = window.setInterval(updateTimer, 1000);
+          timerHandle = _setInterval(updateTimer, 1000);
         };
 
         const loadQuestions = async () => {

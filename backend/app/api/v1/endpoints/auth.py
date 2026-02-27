@@ -118,7 +118,6 @@ async def face_verify(
     payload: FaceVerifyRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    logger.info("Face verify request", extra={"user_id": payload.user_id, "length": len(payload.face_embedding)})
     try:
         user_id = uuid.UUID(payload.user_id)
     except ValueError as exc:
