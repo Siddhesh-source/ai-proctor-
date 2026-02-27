@@ -109,11 +109,42 @@
         justify-content: center;
       }
 
-      .profile-trigger img {
+      .separator {
+        height: 1px;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .avatar {
+        position: relative;
+        display: inline-flex;
         width: 100%;
         height: 100%;
-        border-radius: 50%;
+        overflow: hidden;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.08);
+        align-items: center;
+        justify-content: center;
+      }
+
+      .avatar-image {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
+        position: relative;
+        z-index: 1;
+      }
+
+      .avatar-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
       }
 
       .org-tab {
@@ -231,6 +262,11 @@
         gap: 10px;
         align-items: center;
         flex-wrap: wrap;
+      }
+
+      .actions-bottom {
+        justify-content: flex-end;
+        padding: 10px 0 0;
       }
 
       .button {
@@ -482,6 +518,57 @@
         grid-column: span 6;
       }
 
+      .publish-target {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .publish-target .hint {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .student-filter {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .student-list {
+        display: grid;
+        gap: 10px;
+        max-height: 360px;
+        overflow-y: auto;
+      }
+
+      .student-row {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        padding: 12px 14px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .student-meta {
+        display: grid;
+        gap: 4px;
+      }
+
+      .student-meta strong {
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+
+      .student-meta span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
       .options {
         display: grid;
         gap: 10px;
@@ -673,6 +760,7 @@
               <span class="org-chip">FACULTY</span>
             </div>
           </div>
+          <div class="separator" role="separator" aria-orientation="horizontal"></div>
           <div class="org-info">
             <div class="org-info-row">
               <span class="org-info-name">Himanshu Deshmukh</span>
@@ -688,16 +776,14 @@
                 Configure metadata, build questions, preview the paper, and then publish when ready.
               </div>
             </div>
-            <div class="actions">
-              <a class="button" href="faculty.html">Back</a>
-              <button class="button" id="btn-save" type="button">Save Draft</button>
-              <button class="button primary" id="btn-publish" type="button">Publish Exam</button>
-            </div>
           </div>
           <div class="header-right">
             <div class="profile-trigger-wrap">
               <div class="profile-trigger">
-                <img src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
+                <span class="avatar">
+                  <img class="avatar-image" src="https://i.pravatar.cc/150?img=32" alt="Faculty profile" />
+                  <span class="avatar-fallback">HD</span>
+                </span>
               </div>
             </div>
           </div>
@@ -785,6 +871,13 @@
                   </div>
                 </div>
               </div>
+
+              <div class="field span-12">
+                <div class="publish-target">
+                  <button class="button" id="btn-publish-for" type="button">Publish for...</button>
+                  <div class="hint">Choose the students or classes who should receive this exam.</div>
+                </div>
+              </div>
             </form>
           </div>
         </section>
@@ -803,6 +896,12 @@
             <div id="question-list" class="question-list" aria-live="polite"></div>
           </div>
         </section>
+
+        <div class="actions actions-bottom" style="margin-left:auto;">
+          <a class="button" href="faculty.html">Back</a>
+          <button class="button" id="btn-save" type="button">Save Draft</button>
+          <button class="button primary" id="btn-publish" type="button">Publish Exam</button>
+        </div>
       </div>
     </div>
 
@@ -822,6 +921,34 @@
         <div class="actions" style="justify-content:flex-end;">
           <button class="button" id="btn-preview-save" type="button">Save Draft</button>
           <button class="button primary" id="btn-preview-confirm" type="button">Publish</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="publish-modal" aria-label="Select students">
+      <div class="modal-head">
+        <div>
+          <div class="panel-title">Publish for</div>
+          <div class="muted">Filter by class or pick individual students.</div>
+        </div>
+        <div class="actions">
+          <button class="button" id="btn-close-publish" type="button">Close</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="student-filter">
+          <label for="class-filter" style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase;">Filter by class</label>
+          <select id="class-filter">
+            <option value="all">All classes</option>
+          </select>
+          <label style="display:flex; gap:6px; align-items:center; font-size:12px;">
+            <input id="select-all" type="checkbox" /> Select all
+          </label>
+        </div>
+        <div id="student-list" class="student-list" aria-live="polite"></div>
+        <div class="divider"></div>
+        <div class="actions" style="justify-content:flex-end;">
+          <button class="button" id="btn-apply-publish" type="button">Apply</button>
         </div>
       </div>
     </dialog>
@@ -848,10 +975,78 @@
           questionList: document.getElementById("question-list"),
           questionCount: document.getElementById("question-count"),
           btnAddQuestion: document.getElementById("btn-add-question"),
+          btnSave: document.getElementById("btn-save"),
           btnPublish: document.getElementById("btn-publish"),
+          btnPublishFor: document.getElementById("btn-publish-for"),
+          publishModal: document.getElementById("publish-modal"),
+          publishClose: document.getElementById("btn-close-publish"),
+          publishApply: document.getElementById("btn-apply-publish"),
+          classFilter: document.getElementById("class-filter"),
+          selectAll: document.getElementById("select-all"),
+          studentList: document.getElementById("student-list"),
           toast: document.getElementById("toast"),
           toastTitle: document.getElementById("toast-title"),
           toastMessage: document.getElementById("toast-message"),
+        };
+
+        const STUDENT_ROSTER = [
+          { name: "Ananya Rao", roll: "CS23-041", className: "TY CSE-A" },
+          { name: "Kabir Singh", roll: "CS23-072", className: "TY CSE-A" },
+          { name: "Mira Kulkarni", roll: "CS23-015", className: "TY CSE-B" },
+          { name: "Raghav Desai", roll: "CS24-023", className: "SY CSE-A" },
+          { name: "Sana Merchant", roll: "CS24-044", className: "SY CSE-A" },
+          { name: "Varun Patil", roll: "CS22-091", className: "TY CSE-B" },
+          { name: "Ishita Gokhale", roll: "AI23-032", className: "TY AI-ML" },
+          { name: "Harsh Vaidya", roll: "AI23-048", className: "TY AI-ML" },
+          { name: "Prisha Iyer", roll: "CS24-067", className: "SY CSE-B" },
+        ];
+
+        const publishState = {
+          filter: "all",
+          selected: new Set(STUDENT_ROSTER.map((s) => s.roll)),
+        };
+
+        const renderClassFilter = () => {
+          if (!els.classFilter) return;
+          const classes = Array.from(new Set(STUDENT_ROSTER.map((s) => s.className))).sort();
+          els.classFilter.innerHTML = [`<option value="all">All classes</option>`, ...classes.map((c) => `<option value="${c}">${c}</option>`)].join("");
+        };
+
+        const renderStudentList = () => {
+          if (!els.studentList) return;
+          const filtered = STUDENT_ROSTER.filter((s) => publishState.filter === "all" || s.className === publishState.filter);
+          els.studentList.innerHTML = filtered
+            .map(
+              (student) => `
+                <label class="student-row">
+                  <div class="student-meta">
+                    <strong>${student.name}</strong>
+                    <span>${student.roll} · ${student.className}</span>
+                  </div>
+                  <input type="checkbox" data-roll="${student.roll}" ${publishState.selected.has(student.roll) ? "checked" : ""} />
+                </label>
+              `
+            )
+            .join("");
+
+          if (els.selectAll) {
+            const filteredRolls = new Set(filtered.map((s) => s.roll));
+            const allChecked = filtered.length > 0 && Array.from(filteredRolls).every((roll) => publishState.selected.has(roll));
+            els.selectAll.checked = allChecked;
+          }
+        };
+
+        const openPublishModal = () => {
+          if (!els.publishModal) return;
+          renderClassFilter();
+          renderStudentList();
+          els.publishModal.showModal();
+        };
+
+        const closePublishModal = () => {
+          if (els.publishModal && els.publishModal.open) {
+            els.publishModal.close();
+          }
         };
 
         const uid = () => {
@@ -1072,6 +1267,55 @@
 
         if (els.btnAddQuestion) {
           els.btnAddQuestion.addEventListener("click", addQuestion);
+        }
+
+        if (els.btnPublishFor) {
+          els.btnPublishFor.addEventListener("click", openPublishModal);
+        }
+
+        if (els.publishClose) {
+          els.publishClose.addEventListener("click", closePublishModal);
+        }
+
+        if (els.classFilter) {
+          els.classFilter.addEventListener("change", (event) => {
+            publishState.filter = event.target.value;
+            renderStudentList();
+          });
+        }
+
+        if (els.selectAll) {
+          els.selectAll.addEventListener("change", (event) => {
+            const filtered = STUDENT_ROSTER.filter((s) => publishState.filter === "all" || s.className === publishState.filter);
+            filtered.forEach((student) => {
+              if (event.target.checked) {
+                publishState.selected.add(student.roll);
+              } else {
+                publishState.selected.delete(student.roll);
+              }
+            });
+            renderStudentList();
+          });
+        }
+
+        if (els.studentList) {
+          els.studentList.addEventListener("change", (event) => {
+            const checkbox = event.target;
+            if (checkbox instanceof HTMLInputElement && checkbox.dataset.roll) {
+              if (checkbox.checked) {
+                publishState.selected.add(checkbox.dataset.roll);
+              } else {
+                publishState.selected.delete(checkbox.dataset.roll);
+              }
+            }
+          });
+        }
+
+        if (els.publishApply) {
+          els.publishApply.addEventListener("click", () => {
+            showToast("Audience updated", `${publishState.selected.size} students targeted.`);
+            closePublishModal();
+          });
         }
 
         if (els.questionList) {

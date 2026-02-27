@@ -14,6 +14,8 @@ from app.models.db import User
 from app.schemas.auth import FaceVerifyRequest, LoginRequest, RegisterRequest, TokenResponse
 
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 REQUIRED_POSES = ("center", "left", "right", "up", "down")
 REQUIRED_ACTIONS = ("center", "left", "right", "up", "down", "blink")
@@ -118,7 +120,8 @@ async def face_verify(
     payload: FaceVerifyRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    logger.info("Face verify request", extra={"user_id": payload.user_id, "length": len(payload.face_embedding)})
+    embedding_len = len(payload.face_embedding or [])
+    logger.info("Face verify request", extra={"user_id": payload.user_id, "length": embedding_len})
     try:
         user_id = uuid.UUID(payload.user_id)
     except ValueError as exc:
