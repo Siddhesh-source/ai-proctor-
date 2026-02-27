@@ -1,5 +1,4 @@
 import base64
-import base64
 import logging
 import uuid
 from io import BytesIO
@@ -12,7 +11,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.sarvam import analyse_speech
 from app.models.db import Exam, ProctoringLog, Session as ExamSession, User
 from app.models.ml_models import yolo
 from app.utils.integrity import update_integrity
@@ -162,6 +163,88 @@ async def process_audio(payload: dict, db: AsyncSession = Depends(get_db)) -> di
         )
         return {"violation": True}
     return {"violation": False}
+
+
+@router.post("/audio/stt")
+async def process_audio_stt(payload: dict, db: AsyncSession = Depends(get_db)) -> dict:
+    """
+    Energy-gated Sarvam STT endpoint.
+    Receives a base64-encoded audio clip recorded when mic energy exceeded threshold.
+    Transcribes via Sarvam API, checks for cheating keywords, logs violation if found.
+    Returns { transcript, language_code, violation, keywords, tier, integrity_score }.
+    If SARVAM_API_KEY is not configured, returns { skipped: true }.
+    """
+    if not settings.SARVAM_API_KEY or settings.SARVAM_API_KEY == "your_sarvam_api_key_here":
+        return {"skipped": True, "reason": "SARVAM_API_KEY not configured"}
+
+    session = await _get_session(payload.get("session_id", ""), db)
+    audio_b64 = payload.get("audio_base64", "")
+    mime_type = payload.get("mime_type", "audio/webm")
+
+    if not audio_b64:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="audio_base64 required")
+
+    try:
+        audio_bytes = base64.b64decode(audio_b64)
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid base64 audio") from exc
+
+    # Must be at least 0.5KB to be meaningful audio
+    if len(audio_bytes) < 512:
+        return {"skipped": True, "reason": "audio clip too short"}
+
+    try:
+        result = await analyse_speech(audio_bytes, mime_type, settings.SARVAM_API_KEY)
+    except Exception as exc:
+        logger.warning("Sarvam STT failed: %s", exc)
+        return {"skipped": True, "reason": "stt_error", "detail": str(exc)}
+
+    integrity_score = session.integrity_score or 100.0
+
+    if result["violation"]:
+        integrity_score = await _log_violation(
+            db,
+            session,
+            "speech_cheating",
+            result["confidence"],
+            {
+                "transcript": result["transcript"],
+                "language_code": result["language_code"],
+                "tier": result["tier"],
+                "keywords": result["keywords"],
+            },
+        )
+        logger.info(
+            "Speech cheating detected",
+            extra={
+                "session_id": str(session.id),
+                "tier": result["tier"],
+                "transcript": result["transcript"],
+            },
+        )
+    else:
+        # No violation — log transcript silently in a non-penalising proctoring log
+        # so professors can still review what was said
+        if result["transcript"]:
+            db.add(ProctoringLog(
+                session_id=session.id,
+                violation_type="speech_transcript",
+                confidence=0.0,
+                payload={
+                    "transcript": result["transcript"],
+                    "language_code": result["language_code"],
+                },
+            ))
+            await db.commit()
+
+    return {
+        "transcript": result["transcript"],
+        "language_code": result["language_code"],
+        "tier": result["tier"],
+        "keywords": result["keywords"],
+        "violation": result["violation"],
+        "integrity_score": integrity_score,
+    }
 
 
 @router.post("/raf")

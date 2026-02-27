@@ -183,6 +183,10 @@ async function sendAudio(session_id, voice_energy, keywords_detected = []) {
   return apiCall('POST', '/proctoring/audio', { session_id, voice_energy, keywords_detected });
 }
 
+async function sendAudioStt(session_id, audio_base64, mime_type) {
+  return apiCall('POST', '/proctoring/audio/stt', { session_id, audio_base64, mime_type });
+}
+
 async function sendRaf(session_id, delta_ms) {
   return apiCall('POST', '/proctoring/raf', { session_id, delta_ms });
 }
@@ -273,6 +277,7 @@ window.Morpheus = {
   createExam,
   sendFrame,
   sendAudio,
+  sendAudioStt,
   sendRaf,
   sendViolation,
   getIntegrity,

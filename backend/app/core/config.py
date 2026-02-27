@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JUDGE0_API_KEY: str | None = None
     JUDGE0_API_HOST: str | None = None
+    SARVAM_API_KEY: str | None = None
     
     # Email settings
     SMTP_HOST: str = "smtp.gmail.com"
