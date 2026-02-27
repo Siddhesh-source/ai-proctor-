@@ -216,10 +216,6 @@ async function getExamResults(exam_id) {
   return apiCall('GET', `/results/exam/${exam_id}`);
 }
 
-async function getMyResults() {
-  return apiCall('GET', '/results/me');
-}
-
 async function overrideScore(session_id, question_id, score, note = null) {
   return apiCall('PATCH', `/results/${session_id}/responses/${question_id}/override`, { score, note });
 }
