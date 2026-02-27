@@ -270,6 +270,31 @@ async def get_exam_questions(
     ]
 
 
+@router.get("/{exam_id}/meta")
+async def get_exam_meta(
+    exam_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    _require_role(current_user, "student")
+    try:
+        exam_uuid = uuid.UUID(exam_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid exam_id") from exc
+    exam_result = await db.execute(select(Exam).where(Exam.id == exam_uuid))
+    exam = exam_result.scalar_one_or_none()
+    if not exam:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found")
+    return {
+        "exam_id": str(exam.id),
+        "title": exam.title,
+        "subject_name": exam.type,
+        "start_time": exam.start_time.isoformat() if exam.start_time else None,
+        "end_time": exam.end_time.isoformat() if exam.end_time else None,
+        "duration_minutes": exam.duration_minutes,
+    }
+
+
 @router.post("/{exam_id}/submit-answer", response_model=SubmitAnswerResponse)
 async def submit_answer(
     exam_id: str,

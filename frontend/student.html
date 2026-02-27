@@ -672,7 +672,7 @@
         const setProfile = async () => {
           let user = window.Morpheus.getUser();
           console.log("[STUDENT] cached user", user);
-          if (!user) {
+          if (!user || (!user.full_name && !user.email)) {
             try {
               user = await window.Morpheus.getMe();
             } catch {

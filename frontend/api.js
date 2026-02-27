@@ -173,6 +173,10 @@ async function getExamQuestions(exam_id) {
   return apiCall('GET', `/exams/${exam_id}/questions`);
 }
 
+async function getExamMeta(exam_id) {
+  return apiCall('GET', `/exams/${exam_id}/meta`);
+}
+
 async function startExam(exam_id) {
   return apiCall('POST', `/exams/${exam_id}/start`);
 }
@@ -311,6 +315,7 @@ window.Morpheus = {
   getAvailableExams,
   getProfessorExams,
   getExamQuestions,
+  getExamMeta,
   startExam,
   submitAnswer,
   finishExam,

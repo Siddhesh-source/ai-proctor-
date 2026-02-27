@@ -699,6 +699,10 @@
           questionText: document.getElementById("question-text"),
           answerArea: document.getElementById("answer-area"),
           questionStatus: document.getElementById("question-status"),
+          candidateName: document.getElementById("candidate-name"),
+          examName: document.getElementById("exam-name"),
+          subjectName: document.getElementById("subject-name"),
+          shiftInfo: document.getElementById("shift-info"),
           saveNext: document.getElementById("save-next"),
           reviewNext: document.getElementById("review-next"),
           saveReview: document.getElementById("save-review"),
@@ -1557,6 +1561,26 @@
         const loadQuestions = async () => {
           try {
             console.log(`[EXAM] Loading questions for exam=${exam_id}, session=${session_id}`);
+            const [me, meta] = await Promise.all([
+              window.Morpheus.getMe(),
+              window.Morpheus.getExamMeta(exam_id),
+            ]);
+            if (els.candidateName) {
+              els.candidateName.textContent = me?.full_name || me?.email || "Student";
+            }
+            if (els.examName) {
+              els.examName.textContent = meta?.title || "Exam";
+            }
+            if (els.subjectName) {
+              els.subjectName.textContent = meta?.subject_name || "Subject";
+            }
+            if (els.shiftInfo) {
+              const today = new Date().toLocaleDateString();
+              const start = meta?.start_time ? new Date(meta.start_time).toLocaleString() : "—";
+              const end = meta?.end_time ? new Date(meta.end_time).toLocaleString() : "—";
+              const duration = meta?.duration_minutes ? `${meta.duration_minutes} mins` : "—";
+              els.shiftInfo.textContent = `${today} | ${start} - ${end} | ${duration}`;
+            }
             const result = await window.Morpheus.getExamQuestions(exam_id);
             questions = Array.isArray(result) ? result : [];
             console.log(`[EXAM] Loaded ${questions.length} questions:`, questions.map(q => ({ id: q.id, type: q.type, text: q.text?.slice(0, 40) })));

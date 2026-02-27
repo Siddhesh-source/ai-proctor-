@@ -120,6 +120,52 @@
         border-color: transparent;
       }
 
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        z-index: 40;
+      }
+
+      .modal-backdrop.show {
+        display: flex;
+      }
+
+      .modal {
+        max-width: 520px;
+        width: 100%;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        background: rgba(15, 15, 18, 0.95);
+        padding: 24px;
+        display: grid;
+        gap: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .modal h3 {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 18px;
+      }
+
+      .modal p {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
@@ -405,9 +451,21 @@
       </div>
     </div>
 
+    <div id="email-modal" class="modal-backdrop" role="dialog" aria-modal="true">
+      <div class="modal">
+        <h3>Email Report</h3>
+        <p id="email-modal-text">Send the report to your registered email address.</p>
+        <div class="modal-actions">
+          <button class="button" id="email-cancel" type="button">Cancel</button>
+          <button class="button primary" id="email-confirm" type="button">Send Email</button>
+        </div>
+      </div>
+    </div>
+
     <script src="api.js"></script>
     <script>
       let _currentSessionId = null;
+      let _emailModalOpen = false;
 
       async function handleDownloadPdf() {
         if (!_currentSessionId) return;
@@ -426,18 +484,13 @@
 
       async function handleEmailReport() {
         if (!_currentSessionId) return;
-        const btn = document.getElementById("btn-email-report");
-        btn.textContent = "Sending...";
-        btn.disabled = true;
-        try {
-          const res = await Morpheus.emailResult(_currentSessionId);
-          alert("Report emailed to " + (res.sent_to || "your email"));
-        } catch (e) {
-          alert("Failed to send email: " + e.message);
-        } finally {
-          btn.textContent = "Email Report";
-          btn.disabled = false;
+        const modal = document.getElementById("email-modal");
+        const modalText = document.getElementById("email-modal-text");
+        if (modalText) {
+          modalText.textContent = "Send the report to your registered email address.";
         }
+        modal?.classList.add("show");
+        _emailModalOpen = true;
       }
 
       const start = () => {
@@ -456,6 +509,10 @@
           backLink: document.querySelector(".header a.button"),
           title: document.querySelector(".title"),
           subtitle: document.getElementById("result-subtitle"),
+          emailModal: document.getElementById("email-modal"),
+          emailCancel: document.getElementById("email-cancel"),
+          emailConfirm: document.getElementById("email-confirm"),
+          emailModalText: document.getElementById("email-modal-text"),
         };
 
         const metrics = Array.from(document.querySelectorAll(".summary .metric"));
@@ -616,8 +673,22 @@
             return;
           }
 
+          const totalMarks = rows[0]?.total_marks ?? 0;
+          const scored = rows.map((row) => Number(row.total_score || 0));
+          const avgScore = scored.reduce((a, b) => a + b, 0) / Math.max(scored.length, 1);
+          const topScore = Math.max(...scored);
+          const lowScore = Math.min(...scored);
+
+          const summary = `
+            <div class="summary-grid" style="margin-bottom:16px;">
+              <div class="metric"><span>Average Score</span><strong>${formatScore(avgScore)} / ${formatScore(totalMarks)}</strong></div>
+              <div class="metric"><span>Top Score</span><strong>${formatScore(topScore)} / ${formatScore(totalMarks)}</strong></div>
+              <div class="metric"><span>Lowest Score</span><strong>${formatScore(lowScore)} / ${formatScore(totalMarks)}</strong></div>
+            </div>
+          `;
+
           const tableRows = rows
-            .map((row) => {
+            .map((row, index) => {
               const integrity = Number(row.integrity_score);
               const color =
                 Number.isFinite(integrity) && integrity > 80
@@ -625,10 +696,14 @@
                   : Number.isFinite(integrity) && integrity >= 50
                     ? "#ffd166"
                     : "#ff7a7a";
+              const pct = totalMarks ? Math.round((Number(row.total_score || 0) / totalMarks) * 100) : 0;
               return `
                 <tr>
-                  <td>${escapeHtml(row.student_name)}</td>
-                  <td>${escapeHtml(formatScore(row.total_score))}</td>
+                  <td>${index + 1}</td>
+                  <td>${escapeHtml(row.student_name || row.student_email || "—")}</td>
+                  <td>${escapeHtml(row.student_email || "—")}</td>
+                  <td>${escapeHtml(formatScore(row.total_score))} / ${escapeHtml(formatScore(totalMarks))}</td>
+                  <td>${pct}%</td>
                   <td style="color:${color};">${escapeHtml(formatScore(row.integrity_score))}</td>
                   <td>${escapeHtml(row.status)}</td>
                 </tr>
@@ -637,12 +712,16 @@
             .join("");
 
           els.questionReview.innerHTML = `
+            ${summary}
             <div style="overflow:auto;">
               <table class="table" role="table">
                 <thead>
                   <tr>
+                    <th scope="col">Rank</th>
                     <th scope="col">Student</th>
-                    <th scope="col">Total Score</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Marks</th>
+                    <th scope="col">Percent</th>
                     <th scope="col">Integrity</th>
                     <th scope="col">Status</th>
                   </tr>
@@ -763,6 +842,43 @@
             els.questionReview.innerHTML = `<div class="muted">No result selected.</div>`;
           }
         };
+
+        const closeEmailModal = () => {
+          if (els.emailModal) {
+            els.emailModal.classList.remove("show");
+          }
+          _emailModalOpen = false;
+        };
+
+        if (els.emailCancel) {
+          els.emailCancel.addEventListener("click", closeEmailModal);
+        }
+        if (els.emailConfirm) {
+          els.emailConfirm.addEventListener("click", async () => {
+            if (!_currentSessionId) return;
+            const btn = document.getElementById("btn-email-report");
+            if (btn) {
+              btn.textContent = "Sending...";
+              btn.disabled = true;
+            }
+            try {
+              const res = await Morpheus.emailResult(_currentSessionId);
+              if (els.emailModalText) {
+                els.emailModalText.textContent = `Report emailed to ${res.sent_to || "your email"}.`;
+              }
+              setTimeout(closeEmailModal, 1500);
+            } catch (e) {
+              if (els.emailModalText) {
+                els.emailModalText.textContent = `Failed to send email: ${e.message}`;
+              }
+            } finally {
+              if (btn) {
+                btn.textContent = "Email Report";
+                btn.disabled = false;
+              }
+            }
+          });
+        }
 
         init();
       };

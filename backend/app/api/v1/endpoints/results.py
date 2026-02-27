@@ -160,6 +160,10 @@ async def get_exam_results(
         .order_by(desc(Result.total_score))
     )
     rows = results.all()
+    total_marks_result = await db.execute(
+        select(func.sum(Question.marks)).where(Question.exam_id == exam_uuid)
+    )
+    total_marks = total_marks_result.scalar() or 0
     logger.info(
         "Exam results fetched",
         extra={"exam_id": str(exam_uuid), "session_count": len(rows)},
@@ -178,7 +182,9 @@ async def get_exam_results(
         {
             "session_id": str(session.id),
             "student_name": user.full_name,
+            "student_email": user.email,
             "total_score": result.total_score if result else None,
+            "total_marks": total_marks,
             "integrity_score": (
                 result.integrity_score if result else session.integrity_score
             ),
