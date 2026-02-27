@@ -35,8 +35,12 @@ def _require_role(user: User, role: str) -> None:
 
 
 async def grade_session_background(session_id: uuid.UUID) -> None:
-    async with AsyncSessionLocal() as db:
-        await grade_session(session_id, db)
+    try:
+        async with AsyncSessionLocal() as db:
+            await grade_session(session_id, db)
+        logger.info("Grading completed", extra={"session_id": str(session_id)})
+    except Exception:
+        logger.exception("Background grading failed for session %s", session_id)
 
 
 @router.post("", response_model=ExamCreateResponse)

@@ -208,6 +208,26 @@ async function getExamResults(exam_id) {
   return apiCall('GET', `/results/exam/${exam_id}`);
 }
 
+async function downloadResultPdf(session_id) {
+  const origin = await resolveApiOrigin();
+  const url = `${origin}/api/v1/results/${session_id}/pdf`;
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error('Failed to download PDF');
+  const blob = await response.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `exam_report_${session_id.slice(0, 8)}.pdf`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function emailResult(session_id) {
+  return apiCall('POST', `/results/${session_id}/email`);
+}
+
 async function getExamLogs(exam_id) {
   return apiCall('GET', `/proctoring/exam/${exam_id}/logs`);
 }
@@ -259,6 +279,8 @@ window.Morpheus = {
   getLiveFrame,
   getResult,
   getExamResults,
+  downloadResultPdf,
+  emailResult,
   getExamLogs,
   connectProctoringWS,
   getToken,

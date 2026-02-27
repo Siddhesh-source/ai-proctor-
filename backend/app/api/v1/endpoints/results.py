@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.db import Exam, ProctoringLog, Question, Response, Result, Session, User
+from app.models.grading import grade_session
 from app.utils.pdf_generator import generate_student_report, generate_professor_report
 
 
@@ -42,6 +43,15 @@ async def get_session_results(
     result_row = await db.execute(select(Result).where(Result.session_id == session.id))
     result = result_row.scalar_one_or_none()
 
+    # If session is completed but no Result row exists, grading failed silently — run it now
+    if not result and session.status == "completed":
+        try:
+            await grade_session(session.id, db)
+            result_row = await db.execute(select(Result).where(Result.session_id == session.id))
+            result = result_row.scalar_one_or_none()
+        except Exception:
+            logger.exception("On-demand grading failed for session %s", session_id)
+
     violation_counts_result = await db.execute(
         select(ProctoringLog.violation_type, func.count(ProctoringLog.id))
         .where(ProctoringLog.session_id == session.id)
@@ -51,6 +61,9 @@ async def get_session_results(
         row[0]: row[1] for row in violation_counts_result.all()
     }
 
+    exam_result = await db.execute(select(Exam).where(Exam.id == session.exam_id))
+    exam = exam_result.scalar_one_or_none()
+
     responses_result = await db.execute(
         select(Response, Question)
         .join(Question, Response.question_id == Question.id)
@@ -59,6 +72,8 @@ async def get_session_results(
     responses = [
         {
             "question_id": str(question.id),
+            "question_text": question.text,
+            "correct_answer": question.correct_answer,
             "answer": response.answer,
             "score": response.score,
             "marks": question.marks,
@@ -68,6 +83,7 @@ async def get_session_results(
 
     return {
         "session_id": str(session.id),
+        "exam_title": exam.title if exam else None,
         "status": session.status,
         "total_score": result.total_score if result else None,
         "integrity_score": result.integrity_score if result else session.integrity_score,
@@ -281,7 +297,7 @@ async def get_exam_results_pdf(
 @router.post("/{session_id}/email")
 async def email_session_results(
     session_id: str,
-    db: AsyncSession = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """Email PDF report to student"""
@@ -369,9 +385,11 @@ async def email_session_results(
         integrity_score=session_data['integrity_score']
     )
     
-    # Send email
+    # Send to the logged-in user's email (from their registration profile)
+    recipient_email = current_user.email
+    
     success = await send_email_with_attachment(
-        to_email=student.email if student else "",
+        to_email=recipient_email,
         subject=f"Exam Results: {exam.title if exam else 'Your Exam'}",
         body_html=email_body,
         attachment_data=pdf_buffer,
@@ -379,7 +397,7 @@ async def email_session_results(
     )
     
     if success:
-        return {"message": "Email sent successfully", "sent_to": student.email if student else ""}
+        return {"message": "Email sent successfully", "sent_to": recipient_email}
     else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

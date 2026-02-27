@@ -300,9 +300,11 @@
         <header class="header">
           <div>
             <div class="title">Result</div>
-            <div class="subtitle">Complete performance report for Database Systems Final.</div>
+            <div class="subtitle" id="result-subtitle">Loading results...</div>
           </div>
-          <div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="button" id="btn-download-pdf" style="display:none;" onclick="handleDownloadPdf()">Download PDF</button>
+            <button class="button" id="btn-email-report" style="display:none;" onclick="handleEmailReport()">Email Report</button>
             <a class="button" href="student.html">Back to Dashboard</a>
           </div>
         </header>
@@ -312,16 +314,16 @@
             <div class="summary-grid">
               <div class="metric">
                 <span>Total Score</span>
-                <strong>86 / 100</strong>
+                <strong>—</strong>
               </div>
               <div class="metric">
                 <span>Percentage</span>
-                <strong>86%</strong>
+                <strong>—</strong>
               </div>
               <div class="metric">
                 <span>Integrity</span>
-                <strong>94%</strong>
-                <span class="badge success">Trusted</span>
+                <strong>—</strong>
+                <span class="badge">—</span>
               </div>
             </div>
           </div>
@@ -353,6 +355,39 @@
 
     <script src="api.js"></script>
     <script>
+      let _currentSessionId = null;
+
+      async function handleDownloadPdf() {
+        if (!_currentSessionId) return;
+        const btn = document.getElementById("btn-download-pdf");
+        btn.textContent = "Downloading...";
+        btn.disabled = true;
+        try {
+          await Morpheus.downloadResultPdf(_currentSessionId);
+        } catch (e) {
+          alert("Failed to download PDF: " + e.message);
+        } finally {
+          btn.textContent = "Download PDF";
+          btn.disabled = false;
+        }
+      }
+
+      async function handleEmailReport() {
+        if (!_currentSessionId) return;
+        const btn = document.getElementById("btn-email-report");
+        btn.textContent = "Sending...";
+        btn.disabled = true;
+        try {
+          const res = await Morpheus.emailResult(_currentSessionId);
+          alert("Report emailed to " + (res.sent_to || "your email"));
+        } catch (e) {
+          alert("Failed to send email: " + e.message);
+        } finally {
+          btn.textContent = "Email Report";
+          btn.disabled = false;
+        }
+      }
+
       const start = () => {
         if (!Morpheus.requireAuth()) {
           return;
@@ -361,12 +396,14 @@
         const params = new URLSearchParams(window.location.search);
         const session_id = params.get("session_id") || sessionStorage.getItem("morpheus_session_id");
         const exam_id = params.get("exam_id");
+        _currentSessionId = session_id;
 
         const els = {
           questionReview: document.getElementById("question-review"),
           violationList: document.getElementById("violation-list"),
-          backLink: document.querySelector(".header .button"),
+          backLink: document.querySelector(".header a.button"),
           title: document.querySelector(".title"),
+          subtitle: document.getElementById("result-subtitle"),
         };
 
         const metrics = Array.from(document.querySelectorAll(".summary .metric"));
@@ -451,30 +488,21 @@
               const marksTotal = response.marks ?? "—";
               const marksText = `${formatScore(marksEarned)} / ${formatScore(marksTotal)}`;
               const badgeClass = marksEarned >= marksTotal ? "success" : "warning";
-              const breakdown = response.breakdown
-                ? `
-                    <div class="breakdown">
-                      ${Object.entries(response.breakdown)
-                        .map(
-                          ([key, value]) =>
-                            `<div class="breakdown-item">${escapeHtml(key)}: ${escapeHtml(value)}</div>`,
-                        )
-                        .join("")}
-                    </div>
-                  `
-                : "";
               return `
                 <div class="question-card">
                   <div class="question-header">
                     <h3>Question ${index + 1}</h3>
                     <span class="badge ${badgeClass}">${marksText}</span>
                   </div>
-                  <div class="muted">${escapeHtml(response.question_text || response.question_id || "Question")}</div>
+                  <div class="muted">${escapeHtml(response.question_text || "Question")}</div>
                   <div>
-                    <div class="panel-title" style="margin-bottom: 6px;">Student Answer</div>
+                    <div class="panel-title" style="margin-bottom: 6px;">Your Answer</div>
                     <div class="answer-block">${escapeHtml(response.answer ?? "—")}</div>
                   </div>
-                  ${breakdown}
+                  <div>
+                    <div class="panel-title" style="margin-bottom: 6px;">Correct Answer</div>
+                    <div class="answer-block" style="border-color:rgba(81,255,167,0.3);">${escapeHtml(response.correct_answer ?? "—")}</div>
+                  </div>
                 </div>
               `;
             })
@@ -549,7 +577,25 @@
         };
 
         const loadSessionResult = async (id) => {
-          const result = await Morpheus.getResult(id);
+          let result = await Morpheus.getResult(id);
+
+          // If grading hasn't finished yet, poll a few times
+          if (result.total_score === null && result.status === "completed") {
+            if (els.subtitle) els.subtitle.textContent = "Grading in progress...";
+            for (let i = 0; i < 5; i++) {
+              await new Promise((r) => setTimeout(r, 2000));
+              result = await Morpheus.getResult(id);
+              if (result.total_score !== null) break;
+            }
+          }
+          const examTitle = result.exam_title || "Exam";
+          if (els.subtitle) {
+            els.subtitle.textContent = `Complete performance report for ${examTitle}.`;
+          }
+
+          document.getElementById("btn-download-pdf").style.display = "";
+          document.getElementById("btn-email-report").style.display = "";
+
           const totalScore = result.total_score ?? "—";
           const totalMarks = (result.responses || []).reduce(
             (sum, response) => sum + (Number(response.marks) || 0),
@@ -579,6 +625,9 @@
           if (els.title) {
             els.title.textContent = "Results Overview";
           }
+          if (els.subtitle) {
+            els.subtitle.textContent = `Showing all student results for this exam.`;
+          }
           renderExamResultsTable(rows || []);
           if (els.violationList) {
             els.violationList.innerHTML = "";
@@ -594,6 +643,9 @@
           if (exam_id) {
             await loadExamResults(exam_id);
             return;
+          }
+          if (els.subtitle) {
+            els.subtitle.textContent = "No result selected.";
           }
           if (els.questionReview) {
             els.questionReview.innerHTML = `<div class="muted">No result selected.</div>`;

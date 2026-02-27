@@ -879,6 +879,23 @@
           }
         };
 
+        const flushAllAnswers = async () => {
+          if (saveTimer) {
+            clearTimeout(saveTimer);
+            saveTimer = null;
+          }
+          const entries = Object.entries(answers);
+          for (const [qid, answer] of entries) {
+            if (answer) {
+              try {
+                await window.Morpheus.submitAnswer(exam_id, session_id, qid, answer);
+              } catch (e) {
+                console.error("Failed to flush answer for", qid, e);
+              }
+            }
+          }
+        };
+
         const finishExam = async (force = false) => {
           if (finishing) return;
           if (!force) {
@@ -888,6 +905,7 @@
           }
           finishing = true;
           try {
+            await flushAllAnswers();
             await window.Morpheus.finishExam(exam_id, session_id);
             window.location.href = `result.html?session_id=${session_id}`;
           } catch {
@@ -1113,6 +1131,7 @@
           finishing = true;
           showCriticalWarning("Integrity too low. Ending exam.");
           try {
+            await flushAllAnswers();
             await window.Morpheus.finishExam(exam_id, session_id);
           } catch (error) {
             // ignore
