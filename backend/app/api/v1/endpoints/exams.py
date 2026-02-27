@@ -1,6 +1,6 @@
 import random
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import and_, select
@@ -79,7 +79,7 @@ async def list_available_exams(
     current_user: User = Depends(get_current_user),
 ) -> list[ExamResponse]:
     _require_role(current_user, "student")
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     result = await db.execute(
         select(Exam).where(
             and_(
