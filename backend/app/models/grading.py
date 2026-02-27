@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import uuid
 import urllib.request
@@ -12,8 +13,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.db import Exam, Question, Response, Result, Session as ExamSession
 
+logger = logging.getLogger(__name__)
 
-nlp_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+try:
+    nlp_model = SentenceTransformer("all-MiniLM-L6-v2")
+    logger.info("SentenceTransformer loaded")
+except Exception as exc:
+    logger.exception("SentenceTransformer load failed")
+    raise
 
 LANGUAGE_CHOICES = {
     "c": "11",

@@ -1,5 +1,7 @@
 import uuid
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import desc, func, select
@@ -12,6 +14,7 @@ from app.utils.pdf_generator import generate_student_report, generate_professor_
 
 
 router = APIRouter(prefix="/results", tags=["results"])
+logger = logging.getLogger(__name__)
 
 
 def _require_role(user: User, role: str) -> None:
@@ -97,6 +100,10 @@ async def get_exam_results(
         .order_by(desc(Result.total_score))
     )
     rows = results.all()
+    logger.info(
+        "Exam results fetched",
+        extra={"exam_id": str(exam_uuid), "session_count": len(rows)},
+    )
     session_ids = [session.id for session, _, _ in rows]
     violation_counts: dict[uuid.UUID, int] = {}
     if session_ids:
