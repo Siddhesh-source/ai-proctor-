@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Object Detection Debug</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #111; color: #fff; font-family: monospace; display: flex; flex-direction: column; align-items: center; padding: 24px; gap: 16px; }
+    h2 { font-size: 18px; letter-spacing: 0.1em; color: #d7ff45; }
+    .row { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+    .panel { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    canvas { border-radius: 8px; display: block; }
+    .status-pill { padding: 4px 12px; border-radius: 999px; font-size: 11px; letter-spacing: 0.08em; }
+    .status-pill.loading { background: rgba(255,180,0,0.2); color: #fc0; border: 1px solid #fc0; }
+    .status-pill.ready   { background: rgba(85,221,85,0.2);  color: #5d5; border: 1px solid #5d5; }
+    .status-pill.error   { background: rgba(255,80,80,0.2);  color: #f55; border: 1px solid #f55; }
+    .stats { font-size: 12px; color: #888; line-height: 2.2; }
+    .stats span { color: #fff; }
+    .label-pill {
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      font-size: 12px; font-weight: bold; margin: 2px;
+    }
+    .label-pill.phone    { background: rgba(255,80,80,0.2);  color: #f55; border: 1px solid #f55; }
+    .label-pill.person   { background: rgba(85,170,255,0.2); color: #5af; border: 1px solid #5af; }
+    .label-pill.book     { background: rgba(255,170,85,0.2); color: #fa5; border: 1px solid #fa5; }
+    .label-pill.other    { background: rgba(150,150,150,0.2);color: #aaa; border: 1px solid #555; }
+    .violation-entry { padding: 4px 8px; border-left: 3px solid #f55; margin-bottom: 4px; color: #faa; background: rgba(255,80,80,0.07); border-radius: 0 4px 4px 0; font-size: 11px; }
+    .conf-bar-wrap { width: 160px; height: 8px; background: #222; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    .conf-bar-fill { height: 100%; border-radius: 4px; background: #d7ff45; transition: width 0.2s; }
+  </style>
+</head>
+<body>
+  <h2>OBJECT DETECTION DEBUG — YOLOv10n</h2>
+  <div style="display:flex;gap:10px;align-items:center">
+    <span id="status" class="status-pill loading">Starting camera...</span>
+    <span id="fps-counter" style="font-size:11px;color:#666">-- fps</span>
+  </div>
+
+  <div class="row">
+    <!-- Camera feed -->
+    <div class="panel">
+      <div style="font-size:11px;color:#666;letter-spacing:0.08em">CAMERA FEED</div>
+      <canvas id="output" width="480" height="360"></canvas>
+    </div>
+
+    <!-- Detections -->
+    <div class="panel" style="min-width:220px">
+      <div style="font-size:11px;color:#666;letter-spacing:0.08em">DETECTED LABELS</div>
+      <div id="labels-box" style="min-height:60px;font-size:13px;color:#555">waiting...</div>
+
+      <div style="font-size:11px;color:#666;letter-spacing:0.08em;margin-top:8px">STATS</div>
+      <div class="stats">
+        Persons in frame: <span id="stat-persons">0</span><br>
+        Phone detected: <span id="stat-phone">NO</span><br>
+        Book detected: <span id="stat-book">NO</span><br>
+        Violations fired: <span id="stat-viol" style="color:#f55">0</span><br>
+        Backend latency: <span id="stat-lat">--</span> ms<br>
+        Frames sent: <span id="stat-frames">0</span>
+      </div>
+
+      <div style="font-size:11px;color:#666;letter-spacing:0.08em;margin-top:8px">VIOLATION LOG</div>
+      <div id="log" style="font-size:11px;color:#888;max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;min-width:200px"></div>
+    </div>
+
+    <!-- Raw JSON -->
+    <div class="panel" style="min-width:220px">
+      <div style="font-size:11px;color:#666;letter-spacing:0.08em">LAST RAW RESPONSE</div>
+      <pre id="raw-json" style="font-size:10px;color:#777;white-space:pre-wrap;max-width:260px;max-height:300px;overflow-y:auto">—</pre>
+    </div>
+  </div>
+
+  <video id="video" style="display:none" autoplay muted playsinline></video>
+
+  <script>
+  (() => {
+    const BASE = "http://127.0.0.1:8000/api/v1";
+    const videoEl      = document.getElementById("video");
+    const outputCanvas = document.getElementById("output");
+    const outCtx       = outputCanvas.getContext("2d");
+    const statusEl     = document.getElementById("status");
+    const labelsBox    = document.getElementById("labels-box");
+    const logEl        = document.getElementById("log");
+
+    let violationCount = 0;
+    let frameCount = 0;
+    let framesSent = 0;
+    let lastFpsTime = Date.now();
+    let processing = false;
+
+    // Send canvas frame to /proctoring/frame with session_id="debug"
+    // Backend accepts "debug" and skips DB lookup
+    const sendCanvas = document.createElement("canvas");
+    sendCanvas.width = 640;
+    sendCanvas.height = 480;
+    const sendCtx = sendCanvas.getContext("2d");
+
+    function addLog(msg, color) {
+      const el = document.createElement("div");
+      el.className = "violation-entry";
+      el.style.borderColor = color || "#f55";
+      el.style.color = color ? color : "#faa";
+      el.textContent = new Date().toLocaleTimeString() + " — " + msg;
+      logEl.prepend(el);
+      if (logEl.children.length > 30) logEl.lastChild.remove();
+    }
+
+    function pillClass(label) {
+      if (label === "cell phone") return "phone";
+      if (label === "person") return "person";
+      if (label === "book") return "book";
+      return "other";
+    }
+
+    async function sendFrame() {
+      if (processing || videoEl.readyState < 2) return;
+      processing = true;
+      try {
+        sendCtx.drawImage(videoEl, 0, 0, 640, 480);
+        const b64 = sendCanvas.toDataURL("image/jpeg", 0.8).split(",")[1];
+
+        const t = Date.now();
+        const res = await fetch(`${BASE}/proctoring/frame`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: "debug", frame_base64: b64 })
+        });
+        const latency = Date.now() - t;
+        document.getElementById("stat-lat").textContent = latency;
+        framesSent++;
+        document.getElementById("stat-frames").textContent = framesSent;
+
+        const data = await res.json();
+        document.getElementById("raw-json").textContent = JSON.stringify(data, null, 2);
+
+        // Draw bounding boxes on output canvas
+        outCtx.drawImage(videoEl, 0, 0, outputCanvas.width, outputCanvas.height);
+        const scaleX = outputCanvas.width / 640;
+        const scaleY = outputCanvas.height / 480;
+        (data.detections || []).forEach(d => {
+          const [x1, y1, x2, y2] = d.bbox;
+          const color = d.label === "cell phone" ? "#f55" : d.label === "person" ? "#5af" : d.label === "book" ? "#fa5" : "#aaa";
+          outCtx.strokeStyle = color;
+          outCtx.lineWidth = 2;
+          outCtx.strokeRect(x1 * scaleX, y1 * scaleY, (x2 - x1) * scaleX, (y2 - y1) * scaleY);
+          outCtx.fillStyle = color;
+          outCtx.font = "bold 12px monospace";
+          outCtx.fillText(`${d.label} ${(d.conf * 100).toFixed(0)}%`, x1 * scaleX + 4, y1 * scaleY - 4);
+        });
+
+        // Update label pills
+        const labels = data.labels || [];
+        if (labels.length === 0) {
+          labelsBox.innerHTML = '<span style="color:#555">no objects detected</span>';
+        } else {
+          labelsBox.innerHTML = (data.detections || []).map(d =>
+            `<span class="label-pill ${pillClass(d.label)}">${d.label} <b>${(d.conf*100).toFixed(0)}%</b></span>`
+          ).join("");
+        }
+
+        // Stats
+        const persons = labels.filter(l => l === "person").length;
+        const hasPhone = labels.includes("cell phone");
+        const hasBook  = labels.includes("book");
+        document.getElementById("stat-persons").textContent = persons;
+        document.getElementById("stat-phone").textContent = hasPhone ? "YES ⚠" : "no";
+        document.getElementById("stat-phone").style.color  = hasPhone ? "#f55" : "#5d5";
+        document.getElementById("stat-book").textContent   = hasBook  ? "YES ⚠" : "no";
+        document.getElementById("stat-book").style.color   = hasBook  ? "#fa5" : "#5d5";
+
+        // Violations
+        const viols = data.violations || [];
+        if (viols.length) {
+          viols.forEach(v => {
+            violationCount++;
+            document.getElementById("stat-viol").textContent = violationCount;
+            addLog("VIOLATION: " + v + " | labels: " + labels.join(", "));
+          });
+        }
+
+      } catch(e) {
+        addLog("Network error: " + e.message, "#fa5");
+      }
+      processing = false;
+    }
+
+    // Draw live feed loop (only when not processing — boxes drawn in sendFrame)
+    function drawLoop() {
+      if (!processing && videoEl.readyState >= 2) {
+        outCtx.drawImage(videoEl, 0, 0, outputCanvas.width, outputCanvas.height);
+      }
+      frameCount++;
+      const now = Date.now();
+      if (now - lastFpsTime > 1000) {
+        document.getElementById("fps-counter").textContent = frameCount + " fps";
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+      requestAnimationFrame(drawLoop);
+    }
+
+    // Send a frame every 800ms
+    setInterval(sendFrame, 800);
+
+    navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
+      .then(stream => {
+        videoEl.srcObject = stream;
+        videoEl.play();
+        statusEl.textContent = "Ready — debug mode (no auth needed)";
+        statusEl.className = "status-pill ready";
+        requestAnimationFrame(drawLoop);
+      })
+      .catch(err => {
+        statusEl.textContent = "Camera error: " + err.message;
+        statusEl.className = "status-pill error";
+      });
+  })();
+  </script>
+</body>
+</html>
