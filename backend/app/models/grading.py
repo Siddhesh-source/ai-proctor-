@@ -1,9 +1,9 @@
 import asyncio
+import http.client
 import json
 import logging
 import os
 import uuid
-import urllib.request
 from datetime import datetime, timezone
 from typing import Any
 
@@ -25,27 +25,30 @@ except Exception as exc:
     logger.exception("SentenceTransformer load failed")
     raise
 
-LANGUAGE_CHOICES = {
-    "c": "11",
-    "c#": "27",
-    "c++": "1",
-    "go": "114",
-    "java": "10",
-    "kotlin": "47",
-    "node.js": "56",
-    "objective-c": "43",
-    "php": "29",
-    "perl-6": "54",
-    "python 3x": "116",
-    "r": "117",
-    "ruby": "17",
-    "rust": "93",
-    "sqlite-queries": "52",
-    "sqlite-schema": "40",
-    "scala": "39",
-    "swift": "85",
-    "typescript": "57",
+# Judge0 CE language IDs: https://ce.judge0.com/languages/
+JUDGE0_LANGUAGE_IDS = {
+    "python":     71,  # Python 3
+    "python3":    71,
+    "javascript": 63,  # Node.js
+    "js":         63,
+    "typescript": 74,
+    "java":       62,
+    "c":          50,  # C (GCC)
+    "c++":        54,  # C++ (GCC)
+    "cpp":        54,
+    "go":         60,
+    "rust":       73,
+    "ruby":       72,
+    "kotlin":     78,
+    "swift":      83,
+    "r":          80,
+    "php":        68,
+    "csharp":     51,
+    "c#":         51,
 }
+
+JUDGE0_HOST = os.getenv("JUDGE0_API_HOST", "judge0-ce.p.rapidapi.com")
+JUDGE0_KEY  = os.getenv("JUDGE0_API_KEY", "")
 
 
 def grade_mcq(
@@ -86,62 +89,90 @@ def grade_subjective(
     }
 
 
-def _resolve_language_id(language: str | int) -> str:
-    if isinstance(language, int):
-        return str(language)
-    lang = str(language).strip()
-    if lang.isdigit():
-        return lang
-    lang_key = lang.lower()
-    if lang_key in LANGUAGE_CHOICES:
-        return LANGUAGE_CHOICES[lang_key]
-    raise ValueError("Unsupported language")
+def _resolve_judge0_language(language: str) -> int:
+    key = str(language).strip().lower()
+    if key in JUDGE0_LANGUAGE_IDS:
+        return JUDGE0_LANGUAGE_IDS[key]
+    raise ValueError(f"Unsupported language: {language}")
 
 
-async def _post_json(url: str, payload: dict, headers: dict) -> dict:
-    body = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+async def run_code_judge0(code: str, language: str, stdin: str = "") -> dict:
+    """Run code via Judge0 RapidAPI. Returns {stdout, stderr, exit_code}."""
+    import base64
+
+    if not JUDGE0_KEY:
+        return {"stdout": "", "stderr": "JUDGE0_API_KEY not set in .env", "exit_code": -1}
+
+    lang_id = _resolve_judge0_language(language)
+    payload = json.dumps({
+        "source_code": base64.b64encode(code.encode()).decode(),
+        "language_id": lang_id,
+        "stdin": base64.b64encode(stdin.encode()).decode() if stdin else "",
+    })
+    headers = {
+        "x-rapidapi-key": JUDGE0_KEY,
+        "x-rapidapi-host": JUDGE0_HOST,
+        "Content-Type": "application/json",
+    }
 
     def _send() -> dict:
-        with urllib.request.urlopen(request, timeout=30) as response:
-            return json.loads(response.read().decode("utf-8"))
+        conn = http.client.HTTPSConnection(JUDGE0_HOST, timeout=30)
+        conn.request("POST", "/submissions?base64_encoded=true&wait=true&fields=*", payload, headers)
+        res = conn.getresponse()
+        return json.loads(res.read().decode("utf-8"))
 
-    return await asyncio.to_thread(_send)
+    result = await asyncio.to_thread(_send)
+
+    def _decode(val: str | None) -> str:
+        if not val:
+            return ""
+        try:
+            return base64.b64decode(val).decode("utf-8", errors="replace")
+        except Exception:
+            return val
+
+    stdout = _decode(result.get("stdout"))
+    stderr = _decode(result.get("stderr")) or _decode(result.get("compile_output"))
+    exit_code = result.get("exit_code") or 0
+    status = result.get("status", {})
+    # status_id: 3=Accepted, 4=Wrong Answer — anything else is an error
+    if status.get("id", 3) not in (3, 4):
+        stderr = stderr or status.get("description", "Runtime error")
+
+    return {"stdout": stdout, "stderr": stderr, "exit_code": exit_code}
 
 
-async def grade_code(student_code: str, language: str | int, test_cases: list[dict]) -> dict:
-    if not test_cases:
-        return {"score": 0.0, "passed": 0, "total": 0}
-    api_key = os.getenv("JUDGE0_API_KEY")
-    if not api_key:
-        raise RuntimeError("JUDGE0_API_KEY is not configured")
-    host = os.getenv("JUDGE0_API_HOST", "judge0-ce.p.rapidapi.com")
-    language_id = _resolve_language_id(language)
+# Alias used by the /run-code endpoint
+run_code_piston = run_code_judge0
+
+
+async def grade_code(student_code: str, language: str, test_cases: list[dict], marks: float) -> dict:
+    """Grade code against test cases using Judge0. Returns {score, passed, total, results}."""
+    if not test_cases or not student_code.strip():
+        return {"score": 0.0, "passed": 0, "total": len(test_cases), "results": []}
+
     total = len(test_cases)
     passed = 0
-    marks = float(test_cases[0].get("marks", 0.0)) if test_cases else 0.0
+    results = []
+
     for case in test_cases:
-        stdin = case.get("stdin") or case.get("input") or ""
-        expected = (case.get("expected_output") or "").strip()
-        payload = {
-            "language_id": language_id,
-            "source_code": student_code or "",
-            "stdin": stdin,
-        }
-        response = await _post_json(
-            f"https://{host}/submissions?base64_encoded=false&wait=true",
-            payload,
-            {
-                "Content-Type": "application/json",
-                "X-RapidAPI-Key": api_key,
-                "X-RapidAPI-Host": host,
-            },
-        )
-        stdout = (response.get("stdout") or "").strip()
-        if stdout == expected:
+        stdin = str(case.get("input") or case.get("stdin") or "")
+        expected = str(case.get("expected_output") or "").strip()
+        run = await run_code_judge0(student_code, language, stdin)
+        stdout = run["stdout"].strip()
+        ok = stdout == expected
+        if ok:
             passed += 1
-    score = (passed / total) * marks if total else 0.0
-    return {"score": score, "passed": passed, "total": total}
+        results.append({
+            "input": stdin,
+            "expected": expected,
+            "got": stdout,
+            "passed": ok,
+            "stderr": run["stderr"][:200] if run["stderr"] else "",
+        })
+
+    score = round((passed / total) * marks, 2) if total else 0.0
+    return {"score": score, "passed": passed, "total": total, "results": results}
 
 
 async def grade_session(session_id: uuid.UUID, db: AsyncSession) -> None:
@@ -185,15 +216,17 @@ async def grade_session(session_id: uuid.UUID, db: AsyncSession) -> None:
                     "needs_review": result["semantic"] < 0.45,
                 }
         elif question.type == "code":
-            options: dict[str, Any] = question.options or {}
-            language = options.get("language") or options.get("language_id") or options.get("lang")
-            test_cases = options.get("test_cases", []) if isinstance(options, dict) else []
-            for case in test_cases:
-                if isinstance(case, dict) and "marks" not in case:
-                    case["marks"] = question.marks
+            language = question.code_language or ""
+            test_cases = question.test_cases or []
             if language and test_cases:
-                result = await grade_code(response.answer or "", language, test_cases)
+                result = await grade_code(response.answer or "", language, test_cases, question.marks)
                 score = float(result["score"])
+                if not response.manually_graded:
+                    response.grading_breakdown = {
+                        "passed": result["passed"],
+                        "total": result["total"],
+                        "results": result["results"],
+                    }
         response.score = score
         response.graded_at = datetime.now(timezone.utc)
         total_score += score
