@@ -1,9 +1,9 @@
 import uuid
-
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +21,33 @@ logger = logging.getLogger(__name__)
 def _require_role(user: User, role: str) -> None:
     if user.role != role:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+@router.get("/me")
+async def get_my_results(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[dict]:
+    _require_role(current_user, "student")
+    rows = await db.execute(
+        select(Session, Result, Exam)
+        .join(Exam, Exam.id == Session.exam_id)
+        .outerjoin(Result, Result.session_id == Session.id)
+        .where(Session.student_id == current_user.id)
+        .where(Session.status == "completed")
+        .order_by(desc(Session.finished_at))
+    )
+    return [
+        {
+            "session_id": str(session.id),
+            "exam_id": str(exam.id),
+            "exam_title": exam.title,
+            "total_score": result.total_score if result else None,
+            "integrity_score": result.integrity_score if result else session.integrity_score,
+            "finished_at": session.finished_at.isoformat() if session.finished_at else None,
+        }
+        for session, result, exam in rows.all()
+    ]
 
 
 @router.get("/{session_id}")
@@ -77,6 +104,14 @@ async def get_session_results(
             "answer": response.answer,
             "score": response.score,
             "marks": question.marks,
+            "question_type": question.type,
+            "grading_breakdown": response.grading_breakdown,
+            "needs_review": (
+                response.grading_breakdown.get("needs_review", False)
+                if response.grading_breakdown else False
+            ),
+            "manually_graded": response.manually_graded,
+            "override_note": response.override_note,
         }
         for response, question in responses_result.all()
     ]
@@ -486,4 +521,76 @@ async def get_session_analytics(
         "time_analytics": time_analytics,
         "total_score": result.total_score if result else 0,
         "integrity_score": result.integrity_score if result else session.integrity_score
+    }
+
+
+class OverrideScoreRequest(BaseModel):
+    score: float
+    note: str | None = None
+
+
+@router.patch("/{session_id}/responses/{question_id}/override")
+async def override_response_score(
+    session_id: str,
+    question_id: str,
+    payload: OverrideScoreRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    _require_role(current_user, "professor")
+    try:
+        session_uuid = uuid.UUID(session_id)
+        question_uuid = uuid.UUID(question_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid id") from exc
+
+    session_result = await db.execute(select(Session).where(Session.id == session_uuid))
+    session = session_result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    # Verify the professor owns the exam
+    exam_result = await db.execute(select(Exam).where(Exam.id == session.exam_id))
+    exam = exam_result.scalar_one_or_none()
+    if not exam or exam.professor_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+    response_result = await db.execute(
+        select(Response).where(
+            Response.session_id == session_uuid,
+            Response.question_id == question_uuid,
+        )
+    )
+    response = response_result.scalar_one_or_none()
+    if not response:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
+
+    question_result = await db.execute(select(Question).where(Question.id == question_uuid))
+    question = question_result.scalar_one_or_none()
+    if question and payload.score > question.marks:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Score cannot exceed question marks ({question.marks})",
+        )
+
+    old_score = response.score or 0.0
+    response.score = payload.score
+    response.manually_graded = True
+    response.override_note = payload.note
+    if response.grading_breakdown:
+        response.grading_breakdown = {**response.grading_breakdown, "needs_review": False}
+
+    # Recompute result total
+    result_row = await db.execute(select(Result).where(Result.session_id == session_uuid))
+    result = result_row.scalar_one_or_none()
+    if result:
+        result.total_score = round((result.total_score or 0.0) - old_score + payload.score, 2)
+
+    await db.commit()
+    return {
+        "session_id": session_id,
+        "question_id": question_id,
+        "new_score": payload.score,
+        "total_score": result.total_score if result else None,
+        "manually_graded": True,
     }

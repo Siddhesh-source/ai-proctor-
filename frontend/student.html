@@ -409,8 +409,50 @@
           });
         }
 
+        const pastBody = document.getElementById("past-exams-body");
+
+        const renderPastExams = (rows) => {
+          if (!pastBody) return;
+          if (!rows || !rows.length) {
+            pastBody.innerHTML = `<tr><td colspan="3" class="muted">No completed exams yet.</td></tr>`;
+            return;
+          }
+          pastBody.innerHTML = rows.map((row) => {
+            const score = row.total_score !== null && row.total_score !== undefined
+              ? row.total_score
+              : "—";
+            const integrity = row.integrity_score !== null && row.integrity_score !== undefined
+              ? `${Math.round(row.integrity_score)}%`
+              : "—";
+            const tone = Number(row.integrity_score) > 80 ? "success"
+              : Number(row.integrity_score) >= 50 ? "warning" : "risk";
+            return `
+              <tr>
+                <td>
+                  <div style="font-size:14px;">${row.exam_title || "Exam"}</div>
+                </td>
+                <td>
+                  <a href="result.html?session_id=${row.session_id}" style="color:var(--accent);text-decoration:none;">
+                    ${score}
+                  </a>
+                </td>
+                <td><span class="badge ${tone}">${integrity}</span></td>
+              </tr>`;
+          }).join("");
+        };
+
+        const loadPastExams = async () => {
+          try {
+            const rows = await window.Morpheus.getMyResults();
+            renderPastExams(rows);
+          } catch {
+            if (pastBody) pastBody.innerHTML = `<tr><td colspan="3" class="muted">Could not load past exams.</td></tr>`;
+          }
+        };
+
         setName();
         loadExams();
+        loadPastExams();
       })();
     </script>
   </body>
