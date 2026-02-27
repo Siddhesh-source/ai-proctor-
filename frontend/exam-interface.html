@@ -652,6 +652,27 @@
         const isExtended   = () => _screenExt      ? _screenExt.get.call(window.screen) : window.screen.isExtended;
         // ─────────────────────────────────────────────────────────────────
 
+        // ── getDisplayMedia patch — detect browser-tab screen sharing ────
+        // Fires when the user grants screen share inside the browser
+        // (e.g. browser-based Meet/Zoom sharing this tab or the whole screen).
+        // Desktop app screen capture bypasses the browser entirely and cannot
+        // be detected from JS — this covers the browser-initiated case.
+        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+          const _getDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+          navigator.mediaDevices.getDisplayMedia = async function (...args) {
+            // Fire violation immediately — before the user even picks what to share
+            const sid = sessionStorage.getItem("morpheus_session_id");
+            if (sid) {
+              window.Morpheus.sendViolation(sid, "screen_share_detected", 0.95, {
+                method: "getDisplayMedia",
+              }).catch(() => {});
+            }
+            // Still allow the call so the browser doesn't show an unhandled rejection
+            return _getDisplayMedia(...args);
+          };
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         if (!window.Morpheus.requireAuth("student")) return;
 
         const exam_id =
@@ -1012,6 +1033,7 @@
               multiple_monitors: "Multiple monitors detected",
               tab_switch: "Tab switch detected",
               screenshot_attempt: "Screenshot attempt detected",
+              screen_share_detected: "Screen sharing detected — stop sharing immediately",
             }[violation] || "Violation detected";
           let banner = document.getElementById("violation-banner");
           if (!banner) {
