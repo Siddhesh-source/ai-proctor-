@@ -1421,7 +1421,7 @@
         }
 
         const initTimer = () => {
-          const durationMinutes = 90;
+          const durationMinutes = parseInt(sessionStorage.getItem("morpheus_exam_duration") || "90", 10);
           remainingSeconds = durationMinutes * 60;
           updateTimer();
           timerHandle = _setInterval(updateTimer, 1000);
