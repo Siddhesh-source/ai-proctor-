@@ -290,6 +290,71 @@
           font-size: 24px;
         }
       }
+      .demo-creds {
+        margin-top: 28px;
+        background: rgba(215,255,69,0.06);
+        border: 1px solid rgba(215,255,69,0.22);
+        border-radius: 12px;
+        padding: 18px 20px 14px;
+        font-size: 13px;
+      }
+      .demo-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        color: #d7ff45;
+        margin-bottom: 14px;
+      }
+      .demo-grid {
+        display: flex;
+        gap: 0;
+        align-items: flex-start;
+      }
+      .demo-col { flex: 1; }
+      .demo-divider {
+        width: 1px;
+        background: rgba(255,255,255,0.1);
+        align-self: stretch;
+        margin: 0 16px;
+      }
+      .demo-role {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: rgba(255,255,255,0.45);
+        margin-bottom: 8px;
+      }
+      .demo-item {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 8px;
+        cursor: pointer;
+        padding: 6px 8px;
+        border-radius: 6px;
+        transition: background 160ms;
+      }
+      .demo-item:hover { background: rgba(215,255,69,0.08); }
+      .demo-label {
+        font-size: 10px;
+        color: rgba(255,255,255,0.38);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        margin-bottom: 2px;
+      }
+      .demo-val {
+        font-family: monospace;
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.85);
+        word-break: break-all;
+      }
+      .demo-hint {
+        margin-top: 12px;
+        font-size: 11px;
+        color: rgba(255,255,255,0.32);
+        text-align: center;
+      }
     </style>
   </head>
   <body>
@@ -346,13 +411,55 @@
                 <div class="hint">Don't have an account? <a href="register.html">Sign up</a></div>
               </div>
             </form>
-          </div>
+          <div class="demo-creds">
+            <div class="demo-title">Test Credentials</div>
+            <div class="demo-grid">
+              <div class="demo-col">
+                <div class="demo-role">Professor</div>
+                <div class="demo-item">
+                  <span class="demo-label">Email</span>
+                  <span class="demo-val" onclick="fillLogin(this)">prof.sharma@vit.edu</span>
+                </div>
+                <div class="demo-item">
+                  <span class="demo-label">Password</span>
+                  <span class="demo-val">ProfSharma@123</span>
+                </div>
+              </div>
+              <div class="demo-divider"></div>
+              <div class="demo-col">
+                <div class="demo-role">Student</div>
+                <div class="demo-item">
+                  <span class="demo-label">Email</span>
+                  <span class="demo-val" onclick="fillLogin(this)">student1@vit.edu</span>
+                </div>
+                <div class="demo-item">
+                  <span class="demo-label">Password</span>
+                  <span class="demo-val">Student1@123</span>
+                </div>
+              </div>
+            </div>
+            <div class="demo-hint">Click any row to auto-fill &rarr; then sign in</div>
+          </div>          </div>
         </div>
       </div>
     </div>
 
     <script src="api.js"></script>
     <script>
+
+      function fillLogin(el) {
+        var col = el.closest('.demo-col');
+        var vals = col.querySelectorAll('.demo-val');
+        document.getElementById('email').value = vals[0].textContent.trim();
+        document.getElementById('password').value = vals[1].textContent.trim();
+      }
+      document.querySelectorAll('.demo-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          var vals = item.querySelectorAll('.demo-val');
+          document.getElementById('email').value = vals[0].textContent.trim();
+          document.getElementById('password').value = vals[1].textContent.trim();
+        });
+      });
       const ROLE_REDIRECTS = {
         student: "student.html",
         professor: "professor.html",
