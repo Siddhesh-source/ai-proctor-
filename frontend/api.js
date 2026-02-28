@@ -1,5 +1,5 @@
 const CONFIG = {
-  API_CANDIDATES: ['http://localhost:8000', 'http://127.0.0.1:8000']
+  API_CANDIDATES: [window.location.origin, 'http://localhost:8000', 'http://127.0.0.1:8000']
 };
 
 let activeApiOrigin = sessionStorage.getItem('morpheus_api_origin') || CONFIG.API_CANDIDATES[0];
